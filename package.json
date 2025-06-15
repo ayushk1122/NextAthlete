@@ -1,0 +1,23 @@
+{
+    "name": "nextathlete",
+    "version": "1.0.0",
+    "description": "A platform connecting parents and youth athletes with sports resources",
+    "private": true,
+    "workspaces": [
+        "client",
+        "server"
+    ],
+    "scripts": {
+        "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
+        "dev:client": "cd client && npm run dev",
+        "dev:server": "cd server && npm run dev",
+        "install:all": "npm install && npm run install:client && npm run install:server",
+        "install:client": "cd client && npm install",
+        "install:server": "cd server && npm install"
+    },
+    "devDependencies": {
+        "concurrently": "^8.2.2"
+    },
+    "author": "",
+    "license": "MIT"
+}
