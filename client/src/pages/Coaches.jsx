@@ -252,18 +252,22 @@ const Coaches = () => {
                             <div>
                                 <h4 className="text-sm font-medium text-gray-700 mb-1">Skills</h4>
                                 <div className="flex flex-wrap gap-2">
-                                    {Object.entries(coach.coachProfile.skills).map(([sport, skills]) => (
-                                        Array.isArray(skills)
-                                            ? skills.map(skill => (
-                                                <span
-                                                    key={`${sport}-${skill}`}
-                                                    className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-sm"
-                                                >
-                                                    {skill}
-                                                </span>
-                                            ))
-                                            : null
-                                    ))}
+                                    {Object.entries(coach.coachProfile.skills || {}).flatMap(([sport, skills]) => {
+                                        let skillArr = [];
+                                        if (Array.isArray(skills)) {
+                                            skillArr = skills;
+                                        } else if (typeof skills === 'string') {
+                                            skillArr = skills.split(',').map(s => s.trim()).filter(Boolean);
+                                        }
+                                        return skillArr.map(skill => (
+                                            <span
+                                                key={`${sport}-${skill}`}
+                                                className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-sm"
+                                            >
+                                                {skill}
+                                            </span>
+                                        ));
+                                    })}
                                 </div>
                             </div>
 

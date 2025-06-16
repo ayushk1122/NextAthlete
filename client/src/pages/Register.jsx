@@ -89,8 +89,25 @@ const Register = () => {
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
 
+        // Handle coach skills FIRST
+        if (name.startsWith('coachProfile.skills.')) {
+            const sport = name.split('.')[2];
+            const skill = value;
+            setFormData(prev => ({
+                ...prev,
+                coachProfile: {
+                    ...prev.coachProfile,
+                    skills: {
+                        ...prev.coachProfile.skills,
+                        [sport]: checked
+                            ? Array.from(new Set([...(Array.isArray(prev.coachProfile.skills[sport]) ? prev.coachProfile.skills[sport] : []), skill]))
+                            : (Array.isArray(prev.coachProfile.skills[sport]) ? prev.coachProfile.skills[sport] : []).filter(s => s !== skill)
+                    }
+                }
+            }));
+        }
         // Handle athlete fields
-        if (name.startsWith('athlete.')) {
+        else if (name.startsWith('athlete.')) {
             const athleteField = name.split('.')[1];
             if (athleteField === 'sports') {
                 const sport = value;
@@ -113,7 +130,7 @@ const Register = () => {
                 }));
             }
         }
-        // Handle coach fields
+        // Handle coach fields (other than skills)
         else if (name.startsWith('coachProfile.')) {
             const field = name.split('.')[1];
 
@@ -151,23 +168,6 @@ const Register = () => {
                     }
                 }));
             }
-        }
-        // Handle coach skills
-        else if (name.startsWith('coachProfile.skills.')) {
-            const sport = name.split('.')[2];
-            const skill = value;
-            setFormData(prev => ({
-                ...prev,
-                coachProfile: {
-                    ...prev.coachProfile,
-                    skills: {
-                        ...prev.coachProfile.skills,
-                        [sport]: checked
-                            ? [...(prev.coachProfile.skills[sport] || []), skill]
-                            : (prev.coachProfile.skills[sport] || []).filter(s => s !== skill)
-                    }
-                }
-            }));
         }
         // Handle all other fields
         else {
