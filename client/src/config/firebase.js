@@ -3,21 +3,31 @@ import { getAuth } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
 import { getStorage } from 'firebase/storage'
 
+// TODO: Replace these placeholder values with your actual Firebase project credentials
+// You can find these in your Firebase Console:
+// 1. Go to https://console.firebase.google.com/
+// 2. Select your project
+// 3. Click on the gear icon (⚙️) next to "Project Overview"
+// 4. Go to Project settings
+// 5. Scroll down to "Your apps" section
+// 6. Under the web app configuration, you'll find these values
 const firebaseConfig = {
-    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-    appId: import.meta.env.VITE_FIREBASE_APP_ID,
+    apiKey: "AIzaSyB0Neu0OaJoePfIfaii-DkQDDPpYiCAypE",
+    authDomain: "next-ed59e.firebaseapp.com",
+    projectId: "next-ed59e",
+    storageBucket: "next-ed59e.firebasestorage.app",
+    messagingSenderId: "1015895672952",
+    appId: "1:1015895672952:web:1c3368bbde355f3e41c58d"
 }
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig)
 
 // Initialize Firebase services
-export const auth = getAuth(app)
-export const db = getFirestore(app)
-export const storage = getStorage(app)
+const auth = getAuth(app)
+const db = getFirestore(app)
+const storage = getStorage(app)
+
+export { auth, db }
 
 export default app 

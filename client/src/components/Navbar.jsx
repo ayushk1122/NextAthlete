@@ -1,13 +1,15 @@
 import { Fragment } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Disclosure, Menu, Transition } from '@headlessui/react'
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
+import { useAuth } from '../contexts/AuthContext'
 
 const navigation = [
     { name: 'Home', href: '/' },
     { name: 'Starter Kits', href: '/starter-kits' },
     { name: 'Coaches', href: '/coaches' },
     { name: 'Ask a Question', href: '/ask' },
+    { name: 'Leagues', href: '/leagues' },
 ]
 
 function classNames(...classes) {
@@ -15,6 +17,18 @@ function classNames(...classes) {
 }
 
 export default function Navbar() {
+    const { currentUser, logout } = useAuth();
+    const navigate = useNavigate();
+
+    const handleLogout = async () => {
+        try {
+            await logout();
+            navigate('/');
+        } catch (error) {
+            alert('Failed to log out');
+        }
+    };
+
     return (
         <Disclosure as="nav" className="bg-white shadow">
             {({ open }) => (
@@ -40,18 +54,37 @@ export default function Navbar() {
                                 </div>
                             </div>
                             <div className="hidden sm:ml-6 sm:flex sm:items-center">
-                                <Link
-                                    to="/login"
-                                    className="btn btn-secondary mr-2"
-                                >
-                                    Login
-                                </Link>
-                                <Link
-                                    to="/register"
-                                    className="btn btn-primary"
-                                >
-                                    Register
-                                </Link>
+                                {currentUser ? (
+                                    <>
+                                        <Link
+                                            to="/profile"
+                                            className="btn btn-secondary mr-2"
+                                        >
+                                            View Profile
+                                        </Link>
+                                        <button
+                                            onClick={handleLogout}
+                                            className="btn btn-primary"
+                                        >
+                                            Logout
+                                        </button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Link
+                                            to="/login"
+                                            className="btn btn-secondary mr-2"
+                                        >
+                                            Login
+                                        </Link>
+                                        <Link
+                                            to="/register"
+                                            className="btn btn-primary"
+                                        >
+                                            Register
+                                        </Link>
+                                    </>
+                                )}
                             </div>
                             <div className="-mr-2 flex items-center sm:hidden">
                                 <Disclosure.Button className="inline-flex items-center justify-center rounded-md p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500">
@@ -81,20 +114,41 @@ export default function Navbar() {
                         </div>
                         <div className="border-t border-gray-200 pb-3 pt-4">
                             <div className="space-y-1">
-                                <Disclosure.Button
-                                    as={Link}
-                                    to="/login"
-                                    className="block px-4 py-2 text-base font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800"
-                                >
-                                    Login
-                                </Disclosure.Button>
-                                <Disclosure.Button
-                                    as={Link}
-                                    to="/register"
-                                    className="block px-4 py-2 text-base font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800"
-                                >
-                                    Register
-                                </Disclosure.Button>
+                                {currentUser ? (
+                                    <>
+                                        <Disclosure.Button
+                                            as={Link}
+                                            to="/profile"
+                                            className="block px-4 py-2 text-base font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+                                        >
+                                            View Profile
+                                        </Disclosure.Button>
+                                        <Disclosure.Button
+                                            as="button"
+                                            onClick={handleLogout}
+                                            className="block w-full text-left px-4 py-2 text-base font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+                                        >
+                                            Logout
+                                        </Disclosure.Button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Disclosure.Button
+                                            as={Link}
+                                            to="/login"
+                                            className="block px-4 py-2 text-base font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+                                        >
+                                            Login
+                                        </Disclosure.Button>
+                                        <Disclosure.Button
+                                            as={Link}
+                                            to="/register"
+                                            className="block px-4 py-2 text-base font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+                                        >
+                                            Register
+                                        </Disclosure.Button>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </Disclosure.Panel>
