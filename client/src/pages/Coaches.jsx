@@ -46,6 +46,9 @@ const Coaches = () => {
     const [messageError, setMessageError] = useState('');
     const [selectedCoach, setSelectedCoach] = useState(null);
 
+    const [profileModalOpen, setProfileModalOpen] = useState(false);
+    const [profileCoach, setProfileCoach] = useState(null);
+
     useEffect(() => {
         const fetchCoaches = async () => {
             setLoading(true);
@@ -161,6 +164,119 @@ const Coaches = () => {
         } finally {
             setMessageLoading(false);
         }
+    };
+
+    const openProfileModal = (coach) => {
+        setProfileCoach(coach);
+        setProfileModalOpen(true);
+    };
+
+    const closeProfileModal = () => {
+        setProfileModalOpen(false);
+        setProfileCoach(null);
+    };
+
+    // Coach Profile Modal (modern, large, rectangular)
+    const renderProfileModal = () => {
+        if (!profileModalOpen || !profileCoach) return null;
+        const coachProfile = profileCoach.coachProfile || {};
+        // Ensure certifications is always an array
+        let certifications = coachProfile.certifications;
+        if (!Array.isArray(certifications)) {
+            if (typeof certifications === 'string') {
+                certifications = certifications.split(',').map(c => c.trim()).filter(Boolean);
+            } else if (!certifications) {
+                certifications = [];
+            } else {
+                certifications = [String(certifications)];
+            }
+        }
+        // Ensure skills is always an object
+        const skills = coachProfile.skills || {};
+        // Ensure ageGroups is always an array
+        let ageGroups = coachProfile.ageGroups;
+        if (!Array.isArray(ageGroups)) {
+            if (typeof ageGroups === 'string') {
+                ageGroups = ageGroups.split(',').map(a => a.trim()).filter(Boolean);
+            } else if (!ageGroups) {
+                ageGroups = [];
+            } else {
+                ageGroups = [String(ageGroups)];
+            }
+        }
+        // Get coach name using the same logic as the coach card
+        const getCoachName = (coach) =>
+            coach.name || coach.coachProfile?.name || `${coach.firstName || ''} ${coach.lastName || ''}`.trim() || 'Coach';
+        const coachName = getCoachName(profileCoach);
+        return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl h-[80vh] flex flex-col p-0 relative overflow-hidden">
+                    {/* Close button */}
+                    <button onClick={closeProfileModal} className="absolute top-6 right-6 text-3xl text-gray-400 hover:text-gray-700 focus:outline-none">&times;</button>
+                    {/* Header */}
+                    <div className="flex items-center gap-6 px-10 pt-10 pb-6 border-b border-gray-200 bg-gray-50">
+                        <div className="flex-shrink-0 w-28 h-28 rounded-full bg-blue-100 flex items-center justify-center text-5xl font-bold text-blue-700 uppercase">
+                            {coachName[0] || 'C'}
+                        </div>
+                        <div>
+                            <div className="text-2xl font-bold text-gray-900 mb-1">{coachName}</div>
+                            <div className="text-lg text-blue-600 font-medium mb-1">{Array.isArray(coachProfile.sports) ? coachProfile.sports.join(', ') : coachProfile.sports || ''}</div>
+                            {coachProfile.location && <div className="text-gray-500">{coachProfile.location}</div>}
+                        </div>
+                    </div>
+                    {/* Content */}
+                    <div className="flex-1 overflow-y-auto px-10 py-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {/* Left column: Skills, Age Groups, Certifications */}
+                        <div>
+                            <div className="mb-6">
+                                <div className="font-semibold text-gray-700 mb-2">Skills</div>
+                                <div className="flex flex-wrap gap-2">
+                                    {Object.entries(skills).length === 0 && <span className="text-gray-400">No skills listed</span>}
+                                    {Object.entries(skills).map(([sport, skillArr]) => (
+                                        <div key={sport} className="flex flex-wrap gap-2">
+                                            {Array.isArray(skillArr) ? skillArr.map((skill, idx) => (
+                                                <span key={idx} className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium shadow-sm">{sport}: {skill}</span>
+                                            )) : (
+                                                <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium shadow-sm">{sport}: {skillArr}</span>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="mb-6">
+                                <div className="font-semibold text-gray-700 mb-2">Age Groups</div>
+                                <div className="flex flex-wrap gap-2">
+                                    {ageGroups.length === 0 && <span className="text-gray-400">No age groups listed</span>}
+                                    {ageGroups.map((age, idx) => (
+                                        <span key={idx} className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium shadow-sm">{age}</span>
+                                    ))}
+                                </div>
+                            </div>
+                            <div>
+                                <div className="font-semibold text-gray-700 mb-2">Certifications</div>
+                                <div className="flex flex-wrap gap-2">
+                                    {certifications.length === 0 && <span className="text-gray-400">No certifications listed</span>}
+                                    {certifications.map((cert, idx) => (
+                                        <span key={idx} className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-medium shadow-sm">{cert}</span>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                        {/* Right column: Bio and future features */}
+                        <div>
+                            <div className="font-semibold text-gray-700 mb-2">Bio</div>
+                            <div className="bg-gray-100 rounded-lg p-4 text-gray-800 min-h-[100px]">
+                                {coachProfile.bio || <span className="text-gray-400">No bio provided</span>}
+                            </div>
+                            {/* Placeholder for future features (reviews, contact, etc.) */}
+                            <div className="mt-8">
+                                <div className="text-gray-400 italic text-sm">More features coming soon...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
     };
 
     if (loading) {
@@ -296,9 +412,7 @@ const Coaches = () => {
                                 ))}
                             </div>
                         </div>
-
                         <p className="text-gray-700 mb-4">{coach.coachProfile.bio}</p>
-
                         <div className="space-y-3">
                             {/* Skills */}
                             <div>
@@ -322,7 +436,6 @@ const Coaches = () => {
                                     })}
                                 </div>
                             </div>
-
                             {/* Age Groups */}
                             <div>
                                 <h4 className="text-sm font-medium text-gray-700 mb-1">Age Groups</h4>
@@ -337,13 +450,11 @@ const Coaches = () => {
                                     ))}
                                 </div>
                             </div>
-
                             {/* Experience & Certifications */}
                             <div>
                                 <h4 className="text-sm font-medium text-gray-700 mb-1">Experience</h4>
                                 <p className="text-gray-600">{coach.coachProfile.experience} years</p>
                             </div>
-
                             {coach.coachProfile.certifications && coach.coachProfile.certifications.length > 0 && (
                                 <div>
                                     <h4 className="text-sm font-medium text-gray-700 mb-1">Certifications</h4>
@@ -358,13 +469,18 @@ const Coaches = () => {
                                 </div>
                             )}
                         </div>
-
-                        <div className="mt-6">
+                        <div className="mt-6 flex gap-2">
                             <button
                                 className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
                                 onClick={() => openMessageModal(coach)}
                             >
                                 Contact Coach
+                            </button>
+                            <button
+                                className="w-full bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300 transition-colors"
+                                onClick={() => openProfileModal(coach)}
+                            >
+                                View Profile
                             </button>
                         </div>
                     </div>
@@ -426,6 +542,8 @@ const Coaches = () => {
                     </div>
                 </div>
             )}
+
+            {renderProfileModal()}
         </div>
     );
 };
