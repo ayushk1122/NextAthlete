@@ -27,7 +27,7 @@ router.get('/', async (req, res) => {
             {
                 id: 1,
                 title: 'What size soccer ball should I get for my 8-year-old?',
-                content: "My son is starting soccer and I'm not sure what size ball to get him. He's 8 years old and about 4'2\".",
+                content: 'My son is starting soccer and I\'m not sure what size ball to get him. He\'s 8 years old and about 4\'2".',
                 author: {
                     id: 'user1',
                     name: 'Parent User',

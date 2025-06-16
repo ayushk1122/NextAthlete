@@ -1,7 +1,7 @@
 import { Fragment } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Disclosure, Menu, Transition } from '@headlessui/react'
-import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
+import { Bars3Icon, XMarkIcon, EnvelopeIcon } from '@heroicons/react/24/outline'
 import { useAuth } from '../contexts/AuthContext'
 
 const navigation = [
@@ -57,6 +57,13 @@ export default function Navbar() {
                                 {currentUser ? (
                                     <>
                                         <Link
+                                            to="/inbox"
+                                            className="btn btn-secondary mr-2 flex items-center justify-center w-10 h-10 rounded-full p-0"
+                                            title="Inbox"
+                                        >
+                                            <EnvelopeIcon className="h-6 w-6 text-gray-500 group-hover:text-primary-600 transition" />
+                                        </Link>
+                                        <Link
                                             to="/profile"
                                             className="btn btn-secondary mr-2"
                                         >
@@ -111,6 +118,15 @@ export default function Navbar() {
                                     {item.name}
                                 </Disclosure.Button>
                             ))}
+                            {currentUser && (
+                                <Disclosure.Button
+                                    as={Link}
+                                    to="/inbox"
+                                    className="block border-l-4 border-transparent py-2 pl-3 pr-4 text-base font-medium text-gray-500 hover:border-primary-500 hover:bg-gray-50 hover:text-gray-700"
+                                >
+                                    Inbox
+                                </Disclosure.Button>
+                            )}
                         </div>
                         <div className="border-t border-gray-200 pb-3 pt-4">
                             <div className="space-y-1">

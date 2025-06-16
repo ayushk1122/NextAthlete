@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { collection, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db, auth } from '../config/firebase';
 
 const SPORTS = [
     { label: 'Baseball', value: 'baseball', icon: '⚾' },
@@ -39,6 +39,12 @@ const Coaches = () => {
     const [selectedSports, setSelectedSports] = useState([]);
     const [selectedSkills, setSelectedSkills] = useState([]);
     const [selectedAgeGroups, setSelectedAgeGroups] = useState([]);
+
+    const [messageModalOpen, setMessageModalOpen] = useState(false);
+    const [messageContent, setMessageContent] = useState('');
+    const [messageLoading, setMessageLoading] = useState(false);
+    const [messageError, setMessageError] = useState('');
+    const [selectedCoach, setSelectedCoach] = useState(null);
 
     useEffect(() => {
         const fetchCoaches = async () => {
@@ -110,6 +116,52 @@ const Coaches = () => {
 
         return true;
     });
+
+    const openMessageModal = (coach) => {
+        setSelectedCoach(coach);
+        setMessageContent('');
+        setMessageError('');
+        setMessageModalOpen(true);
+    };
+
+    const closeMessageModal = () => {
+        setMessageModalOpen(false);
+        setSelectedCoach(null);
+        setMessageContent('');
+        setMessageError('');
+    };
+
+    const sendMessage = async () => {
+        setMessageLoading(true);
+        setMessageError('');
+        try {
+            const user = auth.currentUser;
+            if (!user || !selectedCoach) {
+                setMessageError('User not authenticated or coach not selected.');
+                setMessageLoading(false);
+                return;
+            }
+            const conversationId = [user.uid, selectedCoach.id].sort().join('_');
+            await addDoc(collection(db, 'messages'), {
+                senderId: user.uid,
+                senderRole: 'athlete',
+                senderName: user.displayName || 'Athlete',
+                receiverId: selectedCoach.id,
+                receiverRole: 'coach',
+                receiverName: selectedCoach.coachProfile.name || 'Coach',
+                content: messageContent,
+                timestamp: serverTimestamp(),
+                conversationId,
+                participants: [user.uid, selectedCoach.id]
+            });
+            setMessageModalOpen(false);
+        } catch (err) {
+            console.error('Error sending message:', err);
+            setMessageError('Failed to send message.');
+        } finally {
+            setMessageLoading(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -309,8 +361,8 @@ const Coaches = () => {
 
                         <div className="mt-6">
                             <button
-                                onClick={() => {/* TODO: Implement contact functionality */ }}
                                 className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
+                                onClick={() => openMessageModal(coach)}
                             >
                                 Contact Coach
                             </button>
@@ -332,6 +384,46 @@ const Coaches = () => {
                     >
                         Clear all filters
                     </button>
+                </div>
+            )}
+
+            {/* Message Modal */}
+            {messageModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                    <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6 relative">
+                        <button
+                            className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 text-2xl"
+                            onClick={closeMessageModal}
+                            aria-label="Close"
+                        >
+                            &times;
+                        </button>
+                        <h2 className="text-xl font-semibold mb-4">Message {selectedCoach?.coachProfile?.name || selectedCoach?.firstName || 'Coach'}</h2>
+                        <textarea
+                            className="w-full border border-gray-300 rounded p-2 mb-4 min-h-[100px] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Type your message..."
+                            value={messageContent}
+                            onChange={e => setMessageContent(e.target.value)}
+                            disabled={messageLoading}
+                        />
+                        {messageError && <div className="text-red-600 mb-2">{messageError}</div>}
+                        <div className="flex justify-end gap-2">
+                            <button
+                                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                                onClick={closeMessageModal}
+                                disabled={messageLoading}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition disabled:opacity-50"
+                                onClick={sendMessage}
+                                disabled={messageLoading || !messageContent.trim()}
+                            >
+                                {messageLoading ? 'Sending...' : 'Send'}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
