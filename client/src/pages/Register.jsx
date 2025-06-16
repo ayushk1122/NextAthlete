@@ -5,6 +5,34 @@ import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
 import { useAuth } from '../contexts/AuthContext';
 
+const BASEBALL_SKILLS = [
+    'hitting',
+    'pitching',
+    'infield',
+    'outfield',
+    'baserunning'
+];
+
+const SOCCER_SKILLS = [
+    'shooting',
+    'ball handling',
+    'speed',
+    'goalkeeping',
+    'defense'
+];
+
+const AGE_GROUPS = [
+    '3-9',
+    '10-13',
+    '14-18',
+    '18+'
+];
+
+const SPORTS = [
+    { label: 'Baseball', value: 'baseball', icon: '⚾' },
+    { label: 'Soccer', value: 'soccer', icon: '⚽' }
+];
+
 const Register = () => {
     const [formData, setFormData] = useState({
         firstName: '',
@@ -19,10 +47,16 @@ const Register = () => {
             competitiveLevel: 'beginner'
         },
         coachProfile: {
-            certifications: [],
+            sports: [],
+            skills: {
+                baseball: [],
+                soccer: []
+            },
+            ageGroups: [],
+            bio: '',
+            location: '',
             experience: '',
-            specialties: [],
-            teams: [],
+            certifications: []
         },
         merchantProfile: {
             businessName: '',
@@ -79,14 +113,59 @@ const Register = () => {
                 }));
             }
         }
-        // Handle league fields
-        else if (name.startsWith('league.')) {
-            const leagueField = name.split('.')[1];
+        // Handle coach fields
+        else if (name.startsWith('coachProfile.')) {
+            const field = name.split('.')[1];
+
+            // Handle sports selection
+            if (field === 'sports') {
+                setFormData(prev => ({
+                    ...prev,
+                    coachProfile: {
+                        ...prev.coachProfile,
+                        sports: checked
+                            ? [...(Array.isArray(prev.coachProfile.sports) ? prev.coachProfile.sports : []), value]
+                            : (Array.isArray(prev.coachProfile.sports) ? prev.coachProfile.sports : []).filter(sport => sport !== value)
+                    }
+                }));
+            }
+            // Handle age groups selection
+            else if (field === 'ageGroups') {
+                setFormData(prev => ({
+                    ...prev,
+                    coachProfile: {
+                        ...prev.coachProfile,
+                        ageGroups: checked
+                            ? [...(Array.isArray(prev.coachProfile.ageGroups) ? prev.coachProfile.ageGroups : []), value]
+                            : (Array.isArray(prev.coachProfile.ageGroups) ? prev.coachProfile.ageGroups : []).filter(age => age !== value)
+                    }
+                }));
+            }
+            // Handle other coach fields
+            else {
+                setFormData(prev => ({
+                    ...prev,
+                    coachProfile: {
+                        ...prev.coachProfile,
+                        [field]: value
+                    }
+                }));
+            }
+        }
+        // Handle coach skills
+        else if (name.startsWith('coachProfile.skills.')) {
+            const sport = name.split('.')[2];
+            const skill = value;
             setFormData(prev => ({
                 ...prev,
-                leagueProfile: {
-                    ...prev.leagueProfile,
-                    [leagueField]: value
+                coachProfile: {
+                    ...prev.coachProfile,
+                    skills: {
+                        ...prev.coachProfile.skills,
+                        [sport]: checked
+                            ? [...(prev.coachProfile.skills[sport] || []), skill]
+                            : (prev.coachProfile.skills[sport] || []).filter(s => s !== skill)
+                    }
                 }
             }));
         }
@@ -94,7 +173,7 @@ const Register = () => {
         else {
             setFormData(prev => ({
                 ...prev,
-                [name]: value
+                [name]: type === 'checkbox' ? checked : value
             }));
         }
     };
@@ -129,8 +208,20 @@ const Register = () => {
                 lastName: formData.lastName,
                 email: formData.email,
                 role: formData.role,
+                name: `${formData.firstName} ${formData.lastName}`,
                 createdAt: new Date().toISOString()
             };
+
+            // Add role-specific profile data
+            if (formData.role === 'coach') {
+                userData.coachProfile = {
+                    ...formData.coachProfile,
+                    sports: formData.coachProfile.sports || [],
+                    skills: formData.coachProfile.skills || {},
+                    ageGroups: formData.coachProfile.ageGroups || [],
+                    certifications: formData.coachProfile.certifications || []
+                };
+            }
 
             // Add role-specific profile data and save to appropriate collection
             let collectionName;
@@ -140,7 +231,6 @@ const Register = () => {
                     collectionName = 'athletes';
                     break;
                 case 'coach':
-                    userData.coachProfile = formData.coachProfile;
                     collectionName = 'coaches';
                     break;
                 case 'merchant':
@@ -267,45 +357,147 @@ const Register = () => {
             case 'coach':
                 return (
                     <>
-                        <div>
-                            <label htmlFor="coach.experience" className="sr-only">
-                                Years of Experience
-                            </label>
-                            <input
-                                id="coach.experience"
-                                name="coach.experience"
-                                type="number"
-                                required
-                                min="0"
-                                value={formData.coachProfile.experience}
-                                onChange={handleChange}
-                                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                                placeholder="Years of Experience"
-                            />
-                        </div>
-                        <div>
-                            <label htmlFor="coach.specialties" className="sr-only">
-                                Specialties
-                            </label>
-                            <input
-                                id="coach.specialties"
-                                name="coach.specialties"
-                                type="text"
-                                required
-                                value={formData.coachProfile.specialties.join(', ')}
-                                onChange={(e) => {
-                                    const specialties = e.target.value.split(',').map(s => s.trim());
-                                    setFormData(prev => ({
-                                        ...prev,
-                                        coachProfile: {
-                                            ...prev.coachProfile,
-                                            specialties
-                                        }
-                                    }));
-                                }}
-                                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                                placeholder="Specialties (comma-separated)"
-                            />
+                        <div className="space-y-6">
+                            <div>
+                                <h3 className="text-lg font-medium mb-4">Sports & Skills</h3>
+                                <div className="space-y-4">
+                                    {/* Sports Selection */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Select Sports</label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {SPORTS.map(sport => (
+                                                <label key={sport.value} className="inline-flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        name="coachProfile.sports"
+                                                        value={sport.value}
+                                                        checked={Array.isArray(formData.coachProfile.sports) && formData.coachProfile.sports.includes(sport.value)}
+                                                        onChange={handleChange}
+                                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                    />
+                                                    <span className="ml-2">{sport.icon} {sport.label}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Skills Selection */}
+                                    {Array.isArray(formData.coachProfile.sports) && formData.coachProfile.sports.map(sport => (
+                                        <div key={sport}>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                {SPORTS.find(s => s.value === sport)?.label} Skills
+                                            </label>
+                                            <div className="flex flex-wrap gap-2">
+                                                {(sport === 'baseball' ? BASEBALL_SKILLS : SOCCER_SKILLS).map(skill => (
+                                                    <label key={skill} className="inline-flex items-center">
+                                                        <input
+                                                            type="checkbox"
+                                                            name={`coachProfile.skills.${sport}`}
+                                                            value={skill}
+                                                            checked={formData.coachProfile.skills[sport]?.includes(skill)}
+                                                            onChange={handleChange}
+                                                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                        />
+                                                        <span className="ml-2">{skill}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Age Groups */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Age Groups You Coach</label>
+                                <div className="flex flex-wrap gap-2">
+                                    {AGE_GROUPS.map(ageGroup => (
+                                        <label key={ageGroup} className="inline-flex items-center">
+                                            <input
+                                                type="checkbox"
+                                                name="coachProfile.ageGroups"
+                                                value={ageGroup}
+                                                checked={formData.coachProfile.ageGroups.includes(ageGroup)}
+                                                onChange={handleChange}
+                                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                            />
+                                            <span className="ml-2">{ageGroup}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Bio */}
+                            <div>
+                                <label htmlFor="coachProfile.bio" className="block text-sm font-medium text-gray-700">
+                                    Bio
+                                </label>
+                                <textarea
+                                    id="coachProfile.bio"
+                                    name="coachProfile.bio"
+                                    rows={4}
+                                    value={formData.coachProfile.bio}
+                                    onChange={handleChange}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                    placeholder="Tell us about your coaching experience and philosophy..."
+                                />
+                            </div>
+
+                            {/* Location */}
+                            <div>
+                                <label htmlFor="coachProfile.location" className="block text-sm font-medium text-gray-700">
+                                    Location
+                                </label>
+                                <input
+                                    type="text"
+                                    id="coachProfile.location"
+                                    name="coachProfile.location"
+                                    value={formData.coachProfile.location}
+                                    onChange={handleChange}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                    placeholder="City, State"
+                                />
+                            </div>
+
+                            {/* Experience */}
+                            <div>
+                                <label htmlFor="coachProfile.experience" className="block text-sm font-medium text-gray-700">
+                                    Years of Experience
+                                </label>
+                                <input
+                                    type="number"
+                                    id="coachProfile.experience"
+                                    name="coachProfile.experience"
+                                    value={formData.coachProfile.experience}
+                                    onChange={handleChange}
+                                    min="0"
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                />
+                            </div>
+
+                            {/* Certifications */}
+                            <div>
+                                <label htmlFor="coachProfile.certifications" className="block text-sm font-medium text-gray-700">
+                                    Certifications (separated by commas)
+                                </label>
+                                <textarea
+                                    id="coachProfile.certifications"
+                                    name="coachProfile.certifications"
+                                    rows={3}
+                                    value={formData.coachProfile.certifications}
+                                    onChange={(e) => {
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            coachProfile: {
+                                                ...prev.coachProfile,
+                                                certifications: e.target.value
+                                            }
+                                        }));
+                                    }}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                    placeholder="Enter your certifications, separated by commas"
+                                />
+                            </div>
                         </div>
                     </>
                 );
@@ -534,7 +726,7 @@ const Register = () => {
                                 required
                                 value={formData.role}
                                 onChange={handleChange}
-                                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                                className="appearance-only rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                             >
                                 <option value="athlete">Athlete</option>
                                 <option value="coach">Coach</option>

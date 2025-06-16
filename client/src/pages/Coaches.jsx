@@ -1,40 +1,60 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
-const sports = [
-    { id: 'soccer', name: 'Soccer', icon: '⚽' },
-    { id: 'basketball', name: 'Basketball', icon: '🏀' },
-    { id: 'baseball', name: 'Baseball', icon: '⚾' },
-    { id: 'football', name: 'Football', icon: '🏈' },
-    { id: 'tennis', name: 'Tennis', icon: '🎾' },
-    { id: 'swimming', name: 'Swimming', icon: '🏊' },
+const SPORTS = [
+    { label: 'Baseball', value: 'baseball', icon: '⚾' },
+    { label: 'Soccer', value: 'soccer', icon: '⚽' },
 ];
 
-const experienceLevels = [
-    { id: 'beginner', name: 'Beginner' },
-    { id: 'intermediate', name: 'Intermediate' },
-    { id: 'advanced', name: 'Advanced' },
+const BASEBALL_SKILLS = [
+    'hitting',
+    'pitching',
+    'infield',
+    'outfield',
+    'baserunning'
 ];
 
-export default function Coaches() {
-    const [selectedSport, setSelectedSport] = useState('');
-    const [selectedLevel, setSelectedLevel] = useState('');
+const SOCCER_SKILLS = [
+    'shooting',
+    'ball handling',
+    'speed',
+    'goalkeeping',
+    'defense'
+];
+
+const AGE_GROUPS = [
+    '3-9',
+    '10-13',
+    '14-18',
+    '18+'
+];
+
+const Coaches = () => {
     const [coaches, setCoaches] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    // Filter states
+    const [selectedSports, setSelectedSports] = useState([]);
+    const [selectedSkills, setSelectedSkills] = useState([]);
+    const [selectedAgeGroups, setSelectedAgeGroups] = useState([]);
 
     useEffect(() => {
         const fetchCoaches = async () => {
+            setLoading(true);
+            setError('');
             try {
-                const coachesRef = collection(db, 'coaches');
-                const snapshot = await getDocs(coachesRef);
-                const coachesData = snapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                }));
-                setCoaches(coachesData);
-            } catch (error) {
-                console.error('Error fetching coaches:', error);
+                const querySnapshot = await getDocs(collection(db, 'coaches'));
+                const coachList = querySnapshot.docs
+                    .map(doc => ({ id: doc.id, ...doc.data() }))
+                    .filter(coach => coach.coachProfile);
+
+                console.log('Fetched coaches:', coachList); // Debug log
+                setCoaches(coachList);
+            } catch (err) {
+                console.error('Error fetching coaches:', err);
+                setError('Failed to fetch coaches. Please try again later.');
             } finally {
                 setLoading(false);
             }
@@ -43,143 +63,275 @@ export default function Coaches() {
         fetchCoaches();
     }, []);
 
+    const handleSportChange = (sport) => {
+        setSelectedSports(prev =>
+            prev.includes(sport)
+                ? prev.filter(s => s !== sport)
+                : [...prev, sport]
+        );
+    };
+
+    const handleSkillChange = (skill) => {
+        setSelectedSkills(prev =>
+            prev.includes(skill)
+                ? prev.filter(s => s !== skill)
+                : [...prev, skill]
+        );
+    };
+
+    const handleAgeGroupChange = (ageGroup) => {
+        setSelectedAgeGroups(prev =>
+            prev.includes(ageGroup)
+                ? prev.filter(age => age !== ageGroup)
+                : [...prev, ageGroup]
+        );
+    };
+
     const filteredCoaches = coaches.filter(coach => {
-        if (selectedSport && !coach.sports.includes(selectedSport)) return false;
-        if (selectedLevel && coach.experienceLevel !== selectedLevel) return false;
+        const { sports, skills, ageGroups } = coach.coachProfile;
+
+        // Filter by sports
+        if (selectedSports.length > 0 && !selectedSports.some(sport => sports.includes(sport))) {
+            return false;
+        }
+
+        // Filter by skills
+        if (selectedSkills.length > 0) {
+            const hasSelectedSkill = selectedSkills.some(skill => {
+                return Object.values(skills).some(sportSkills => sportSkills.includes(skill));
+            });
+            if (!hasSelectedSkill) return false;
+        }
+
+        // Filter by age groups
+        if (selectedAgeGroups.length > 0 && !selectedAgeGroups.some(age => ageGroups.includes(age))) {
+            return false;
+        }
+
         return true;
     });
 
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center min-h-screen">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="max-w-4xl mx-auto py-8 px-4">
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+                    {error}
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className="bg-white">
-            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
-                <div className="text-center">
-                    <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-                        Find Your Perfect Coach
-                    </h1>
-                    <p className="mt-4 text-lg text-gray-500">
-                        Connect with experienced coaches who can help you achieve your athletic goals.
-                    </p>
-                </div>
+        <div className="max-w-4xl mx-auto py-8 px-4">
+            <h1 className="text-3xl font-bold mb-6 text-center">Find Your Perfect Coach</h1>
 
-                {/* Filters */}
-                <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2">
-                    <div>
-                        <label htmlFor="sport" className="block text-sm font-medium text-gray-700">
-                            Select Sport
-                        </label>
-                        <select
-                            id="sport"
-                            name="sport"
-                            value={selectedSport}
-                            onChange={(e) => setSelectedSport(e.target.value)}
-                            className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-primary-500 focus:outline-none focus:ring-primary-500 sm:text-sm"
-                        >
-                            <option value="">All Sports</option>
-                            {sports.map((sport) => (
-                                <option key={sport.id} value={sport.id}>
-                                    {sport.icon} {sport.name}
-                                </option>
-                            ))}
-                        </select>
+            {/* Landing/Intro Section */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8 shadow-sm">
+                <h2 className="text-xl font-semibold mb-2 text-blue-900">Welcome to Our Coach Directory!</h2>
+                <p className="text-gray-800 mb-4">
+                    Whether you're looking to improve your skills, learn the fundamentals, or take your game to the next level,
+                    our experienced coaches are here to help. Browse through our directory to find coaches who specialize in
+                    your sport, age group, and specific skills you want to develop.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div className="bg-white p-4 rounded-lg shadow-sm">
+                        <h3 className="font-semibold mb-2">Find by Sport</h3>
+                        <p>Filter coaches by baseball or soccer to find the right match for your sport.</p>
                     </div>
-
-                    <div>
-                        <label htmlFor="level" className="block text-sm font-medium text-gray-700">
-                            Experience Level
-                        </label>
-                        <select
-                            id="level"
-                            name="level"
-                            value={selectedLevel}
-                            onChange={(e) => setSelectedLevel(e.target.value)}
-                            className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-primary-500 focus:outline-none focus:ring-primary-500 sm:text-sm"
-                        >
-                            <option value="">All Levels</option>
-                            {experienceLevels.map((level) => (
-                                <option key={level.id} value={level.id}>
-                                    {level.name}
-                                </option>
-                            ))}
-                        </select>
+                    <div className="bg-white p-4 rounded-lg shadow-sm">
+                        <h3 className="font-semibold mb-2">Match by Skills</h3>
+                        <p>Search for coaches who specialize in specific skills you want to develop.</p>
+                    </div>
+                    <div className="bg-white p-4 rounded-lg shadow-sm">
+                        <h3 className="font-semibold mb-2">Age-Appropriate</h3>
+                        <p>Find coaches who work with your age group, from beginners to advanced players.</p>
                     </div>
                 </div>
+            </div>
 
-                {/* Coaches Grid */}
-                {loading ? (
-                    <div className="mt-12 text-center">
-                        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary-600 border-r-transparent"></div>
-                        <p className="mt-2 text-gray-500">Loading coaches...</p>
-                    </div>
-                ) : filteredCoaches.length > 0 ? (
-                    <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                        {filteredCoaches.map((coach) => (
-                            <div
-                                key={coach.id}
-                                className="group relative rounded-lg border border-gray-200 p-6 hover:border-primary-500 hover:shadow-lg transition-all"
+            {/* Filters Section */}
+            <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
+                <h2 className="text-xl font-semibold mb-4">Filter Coaches</h2>
+
+                {/* Sports Filter */}
+                <div className="mb-6">
+                    <h3 className="text-sm font-medium text-gray-700 mb-2">Sports</h3>
+                    <div className="flex flex-wrap gap-2">
+                        {SPORTS.map(sport => (
+                            <button
+                                key={sport.value}
+                                onClick={() => handleSportChange(sport.value)}
+                                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${selectedSports.includes(sport.value)
+                                    ? 'bg-blue-100 text-blue-800'
+                                    : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                                    }`}
                             >
-                                <div className="flex items-center space-x-4">
-                                    <div className="h-16 w-16 rounded-full bg-gray-200 overflow-hidden">
-                                        {coach.photoURL ? (
-                                            <img
-                                                src={coach.photoURL}
-                                                alt={coach.name}
-                                                className="h-full w-full object-cover"
-                                            />
-                                        ) : (
-                                            <div className="h-full w-full flex items-center justify-center bg-primary-100 text-primary-600 text-2xl">
-                                                {coach.name.charAt(0)}
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div>
-                                        <h3 className="text-lg font-medium text-gray-900">{coach.name}</h3>
-                                        <p className="text-sm text-gray-500">{coach.title}</p>
-                                    </div>
-                                </div>
-                                <p className="mt-4 text-sm text-gray-500">{coach.bio}</p>
-                                <div className="mt-4">
-                                    <h4 className="text-sm font-medium text-gray-900">Specialties:</h4>
-                                    <div className="mt-2 flex flex-wrap gap-2">
-                                        {coach.sports?.map((sport) => (
-                                            <span
-                                                key={sport}
-                                                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800"
-                                            >
-                                                {sports.find(s => s.id === sport)?.icon} {sports.find(s => s.id === sport)?.name}
-                                            </span>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div className="mt-6 flex items-center justify-between">
-                                    <div className="flex items-center">
-                                        <span className="text-sm text-gray-500">Rating: </span>
-                                        <div className="ml-2 flex items-center">
-                                            {[...Array(5)].map((_, i) => (
-                                                <svg
-                                                    key={i}
-                                                    className={`h-4 w-4 ${i < (coach.rating || 0)
-                                                            ? 'text-yellow-400'
-                                                            : 'text-gray-300'
-                                                        }`}
-                                                    fill="currentColor"
-                                                    viewBox="0 0 20 20"
-                                                >
-                                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                                </svg>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <button className="btn btn-primary">Contact Coach</button>
-                                </div>
-                            </div>
+                                {sport.icon} {sport.label}
+                            </button>
                         ))}
                     </div>
-                ) : (
-                    <div className="mt-12 text-center">
-                        <p className="text-gray-500">No coaches found matching your criteria.</p>
+                </div>
+
+                {/* Skills Filter */}
+                <div className="mb-6">
+                    <h3 className="text-sm font-medium text-gray-700 mb-2">Skills</h3>
+                    <div className="flex flex-wrap gap-2">
+                        {(
+                            selectedSports.length === 0
+                                ? [...BASEBALL_SKILLS, ...SOCCER_SKILLS]
+                                : selectedSports.flatMap(sport =>
+                                    sport === 'baseball' ? BASEBALL_SKILLS : SOCCER_SKILLS
+                                )
+                        ).map(skill => (
+                            <button
+                                key={skill}
+                                onClick={() => handleSkillChange(skill)}
+                                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${selectedSkills.includes(skill)
+                                    ? 'bg-blue-100 text-blue-800'
+                                    : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                                    }`}
+                            >
+                                {skill}
+                            </button>
+                        ))}
                     </div>
-                )}
+                </div>
+
+                {/* Age Groups Filter */}
+                <div>
+                    <h3 className="text-sm font-medium text-gray-700 mb-2">Age Groups</h3>
+                    <div className="flex flex-wrap gap-2">
+                        {AGE_GROUPS.map(ageGroup => (
+                            <button
+                                key={ageGroup}
+                                onClick={() => handleAgeGroupChange(ageGroup)}
+                                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${selectedAgeGroups.includes(ageGroup)
+                                    ? 'bg-blue-100 text-blue-800'
+                                    : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                                    }`}
+                            >
+                                {ageGroup}
+                            </button>
+                        ))}
+                    </div>
+                </div>
             </div>
+
+            {/* Coaches Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {filteredCoaches.map(coach => (
+                    <div key={coach.id} className="bg-white rounded-lg shadow-sm p-6">
+                        <div className="flex items-start justify-between mb-4">
+                            <div>
+                                <h3 className="text-xl font-semibold">{
+                                    coach.name || coach.coachProfile?.name || `${coach.firstName || ''} ${coach.lastName || ''}`.trim()
+                                }</h3>
+                                <p className="text-gray-600">{coach.coachProfile.location}</p>
+                            </div>
+                            <div className="flex gap-2">
+                                {coach.coachProfile.sports.map(sport => (
+                                    <span key={sport} className="text-2xl">
+                                        {SPORTS.find(s => s.value === sport)?.icon}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+
+                        <p className="text-gray-700 mb-4">{coach.coachProfile.bio}</p>
+
+                        <div className="space-y-3">
+                            {/* Skills */}
+                            <div>
+                                <h4 className="text-sm font-medium text-gray-700 mb-1">Skills</h4>
+                                <div className="flex flex-wrap gap-2">
+                                    {Object.entries(coach.coachProfile.skills).map(([sport, skills]) => (
+                                        Array.isArray(skills)
+                                            ? skills.map(skill => (
+                                                <span
+                                                    key={`${sport}-${skill}`}
+                                                    className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-sm"
+                                                >
+                                                    {skill}
+                                                </span>
+                                            ))
+                                            : null
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Age Groups */}
+                            <div>
+                                <h4 className="text-sm font-medium text-gray-700 mb-1">Age Groups</h4>
+                                <div className="flex flex-wrap gap-2">
+                                    {coach.coachProfile.ageGroups.map(ageGroup => (
+                                        <span
+                                            key={ageGroup}
+                                            className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-sm"
+                                        >
+                                            {ageGroup}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Experience & Certifications */}
+                            <div>
+                                <h4 className="text-sm font-medium text-gray-700 mb-1">Experience</h4>
+                                <p className="text-gray-600">{coach.coachProfile.experience} years</p>
+                            </div>
+
+                            {coach.coachProfile.certifications && coach.coachProfile.certifications.length > 0 && (
+                                <div>
+                                    <h4 className="text-sm font-medium text-gray-700 mb-1">Certifications</h4>
+                                    <ul className="list-disc list-inside text-gray-600">
+                                        {(typeof coach.coachProfile.certifications === 'string'
+                                            ? coach.coachProfile.certifications.split(',').map(cert => cert.trim()).filter(Boolean)
+                                            : coach.coachProfile.certifications
+                                        ).map((cert, index) => (
+                                            <li key={index}>{cert}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="mt-6">
+                            <button
+                                onClick={() => {/* TODO: Implement contact functionality */ }}
+                                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
+                            >
+                                Contact Coach
+                            </button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {filteredCoaches.length === 0 && (
+                <div className="text-center py-8">
+                    <p className="text-gray-600">No coaches found matching your criteria.</p>
+                    <button
+                        onClick={() => {
+                            setSelectedSports([]);
+                            setSelectedSkills([]);
+                            setSelectedAgeGroups([]);
+                        }}
+                        className="mt-4 text-blue-600 hover:text-blue-800"
+                    >
+                        Clear all filters
+                    </button>
+                </div>
+            )}
         </div>
     );
-} 
+};
+
+export default Coaches; 

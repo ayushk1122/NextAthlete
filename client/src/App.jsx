@@ -12,6 +12,7 @@ const Profile = lazy(() => import("./pages/Profile"));
 const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
 const Leagues = lazy(() => import("./pages/Leagues"));
+const Coaches = lazy(() => import('./pages/Coaches'));
 
 function ProtectedRoute({ children }) {
     const [user, loading] = useAuthState(auth);
@@ -47,6 +48,7 @@ function App() {
                                 }
                             />
                             <Route path="/leagues" element={<Leagues />} />
+                            <Route path="/coaches" element={<Coaches />} />
                         </Routes>
                     </Suspense>
                 </main>
