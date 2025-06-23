@@ -2,15 +2,34 @@ import React, { useEffect, useState } from 'react';
 import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, getDoc, doc } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
+import ProfileModal from '../components/ProfileModal';
 
 function getOtherUserInfo(messages, currentUserId) {
-    const msg = messages.find(m => m.senderId !== currentUserId) || messages[0];
+    // Use the participants array from the first message
+    const participants = messages[0]?.participants || [];
+    const otherUserId = participants.find(id => id !== currentUserId);
     return {
-        id: msg.senderId === currentUserId ? msg.receiverId : msg.senderId,
-        role: msg.senderId === currentUserId ? msg.receiverRole : msg.senderRole,
-        name: msg.senderId === currentUserId ? msg.receiverName : msg.senderName || 'User',
+        id: otherUserId
     };
 }
+
+// Utility to get the user's display name (same as Coaches directory)
+const getDisplayName = (user) => {
+    if (!user) return 'Unknown User';
+    return user.name || user.coachProfile?.name || user.athleteProfile?.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown User';
+};
+
+// Utility to fetch full user profile (coach or athlete)
+const fetchFullProfile = async (userId, role) => {
+    if (role === 'coach') {
+        const coachDoc = await getDoc(doc(db, 'coaches', userId));
+        if (coachDoc.exists()) return { ...coachDoc.data(), id: userId, role: 'coach' };
+    }
+    // fallback to users
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    if (userDoc.exists()) return { ...userDoc.data(), id: userId };
+    return null;
+};
 
 export default function Inbox() {
     const [conversations, setConversations] = useState([]);
@@ -19,6 +38,12 @@ export default function Inbox() {
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(true);
     const [userNames, setUserNames] = useState({});
+    const [profileModalOpen, setProfileModalOpen] = useState(false);
+    const [profileUser, setProfileUser] = useState(null);
+    const [profileLoading, setProfileLoading] = useState(false);
+    const [profileError, setProfileError] = useState('');
+    const [optionModalOpen, setOptionModalOpen] = useState(false);
+    const [pendingConversation, setPendingConversation] = useState(null);
 
     const [currentUser, userLoading] = useAuthState(auth);
 
@@ -80,12 +105,18 @@ export default function Inbox() {
             console.log('Fetching names for users:', Array.from(userIds));
             const names = {};
             for (const userId of userIds) {
+                console.log('Fetching userId:', userId);
                 const userDoc = await getDoc(doc(db, 'users', userId));
+                console.log('userDoc.exists():', userDoc.exists());
                 if (userDoc.exists()) {
-                    names[userId] = userDoc.data().name || 'Unknown User';
+                    const userData = userDoc.data();
+                    console.log('Fetched userData for', userId, ':', userData);
+                    names[userId] = getDisplayName(userData);
+                } else {
+                    console.log('No userDoc found for', userId);
                 }
             }
-            console.log('Fetched user names:', names);
+            console.log('Final userNames object:', names);
             setUserNames(names);
         });
 
@@ -131,6 +162,71 @@ export default function Inbox() {
         }
     };
 
+    // Fetch and show profile modal
+    const openProfileModal = async (userId, role) => {
+        setProfileLoading(true);
+        setProfileError('');
+        setProfileModalOpen(true);
+        try {
+            const profile = await fetchFullProfile(userId, role);
+            if (profile) {
+                setProfileUser(profile);
+            } else {
+                setProfileError('Profile not found.');
+            }
+        } catch (err) {
+            setProfileError('Failed to load profile.');
+        } finally {
+            setProfileLoading(false);
+        }
+    };
+    const closeProfileModal = () => {
+        setProfileModalOpen(false);
+        setProfileUser(null);
+        setProfileError('');
+    };
+
+    // Utility to ensure certifications is always an array
+    const getCertificationsArray = (certs) => {
+        if (Array.isArray(certs)) return certs;
+        if (typeof certs === 'string') return certs.split(',').map(c => c.trim()).filter(Boolean);
+        if (!certs) return [];
+        return [String(certs)];
+    };
+
+    const renderConversationCard = (conversation) => {
+        const otherUser = getOtherUserInfo(conversation.messages, currentUser.uid);
+        const userNameFromMap = otherUser?.id ? userNames[otherUser.id] : undefined;
+        let displayName = userNameFromMap;
+        if (!displayName) {
+            displayName = otherUser?.name || ((otherUser?.firstName || '') + ' ' + (otherUser?.lastName || '')).trim() || 'Unknown User';
+        }
+        console.log('Conversation data:', {
+            conversation,
+            otherUser,
+            currentUser,
+            participants: conversation.participants,
+            userNames,
+            otherUserId: otherUser?.id,
+            userNameFromMap,
+            displayName
+        });
+
+        return (
+            <div
+                key={conversation.id}
+                className={`p-4 border-b cursor-pointer hover:bg-gray-100 relative ${selectedConversation === conversation.id ? 'bg-gray-50' : ''}`}
+                onClick={() => {
+                    setPendingConversation(conversation);
+                    setOptionModalOpen(true);
+                }}
+            >
+                <div className="font-semibold text-gray-900">{displayName}</div>
+                <div className="text-gray-600 text-sm truncate">{conversation.messages[0]?.content || ''}</div>
+            </div>
+        );
+    };
+
     if (loading || userLoading) {
         return (
             <div className="flex items-center justify-center min-h-screen">
@@ -153,17 +249,18 @@ export default function Inbox() {
                     ) : (
                         conversations.map(conv => {
                             const otherUser = getOtherUserInfo(conv.messages, currentUser.uid);
+                            const displayName = userNames[otherUser.id] || getDisplayName(otherUser);
                             return (
                                 <div
                                     key={conv.id}
-                                    onClick={() => setSelectedConversation(conv.id)}
-                                    className={`p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50 ${selectedConversation === conv.id ? 'bg-gray-100' : ''
-                                        }`}
+                                    className={`p-4 border-b cursor-pointer hover:bg-gray-100 relative ${selectedConversation === conv.id ? 'bg-gray-50' : ''}`}
+                                    onClick={() => {
+                                        setPendingConversation(conv);
+                                        setOptionModalOpen(true);
+                                    }}
                                 >
-                                    <div className="font-semibold">{userNames[otherUser.id] || 'User'}</div>
-                                    <div className="text-sm text-gray-600 truncate">
-                                        {conv.latestMessage.content}
-                                    </div>
+                                    <div className="font-semibold text-gray-900">{displayName}</div>
+                                    <div className="text-gray-600 text-sm truncate">{conv.messages[0]?.content || ''}</div>
                                 </div>
                             );
                         })
@@ -222,6 +319,47 @@ export default function Inbox() {
                     )}
                 </div>
             </div>
+            <ProfileModal
+                open={profileModalOpen}
+                onClose={closeProfileModal}
+                profile={profileUser}
+                role={profileUser?.role || (profileUser?.coachProfile ? 'coach' : 'athlete')}
+                getUserName={getDisplayName}
+                fallbackUser={profileUser}
+            />
+            {/* Option Modal */}
+            {optionModalOpen && pendingConversation && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                    <div className="bg-white rounded-xl shadow-xl p-8 flex flex-col gap-4 min-w-[300px] max-w-xs">
+                        <div className="text-lg font-semibold mb-2">What would you like to do?</div>
+                        <button
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded px-4 py-2 font-medium"
+                            onClick={async () => {
+                                setOptionModalOpen(false);
+                                const otherUser = getOtherUserInfo(pendingConversation.messages, currentUser.uid);
+                                await openProfileModal(otherUser.id, otherUser.role);
+                            }}
+                        >
+                            View Profile
+                        </button>
+                        <button
+                            className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 rounded px-4 py-2 font-medium"
+                            onClick={() => {
+                                setOptionModalOpen(false);
+                                setSelectedConversation(pendingConversation.id);
+                            }}
+                        >
+                            View Conversation
+                        </button>
+                        <button
+                            className="w-full text-gray-400 hover:text-gray-600 mt-2 text-sm"
+                            onClick={() => setOptionModalOpen(false)}
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 } 

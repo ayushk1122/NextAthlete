@@ -28,9 +28,22 @@ const AGE_GROUPS = [
     '18+'
 ];
 
+const TEAM_AGE_GROUPS = [
+    '9u', '10u', '11u', '12u', '13u', '14u', '15u', '16u', '17u', '18u'
+];
+
 const SPORTS = [
     { label: 'Baseball', value: 'baseball', icon: '⚾' },
-    { label: 'Soccer', value: 'soccer', icon: '⚽' }
+    { label: 'Soccer', value: 'soccer', icon: '⚽' },
+    { label: 'Basketball', value: 'basketball', icon: '🏀' },
+    { label: 'Football', value: 'football', icon: '🏈' },
+    { label: 'Softball', value: 'softball', icon: '🥎' },
+    { label: 'Volleyball', value: 'volleyball', icon: '🏐' },
+];
+
+const TEAM_TYPES = [
+    { label: 'Travel Team', value: 'travel' },
+    { label: 'No-Travel Team', value: 'no-travel' }
 ];
 
 const Register = () => {
@@ -76,9 +89,11 @@ const Register = () => {
         teamProfile: {
             teamName: '',
             sport: '',
-            ageGroup: '',
-            level: '',
+            ageGroups: [],
+            teamType: '',
             location: '',
+            website: '',
+            description: ''
         }
     });
     const [error, setError] = useState('');
@@ -164,6 +179,33 @@ const Register = () => {
                     ...prev,
                     coachProfile: {
                         ...prev.coachProfile,
+                        [field]: value
+                    }
+                }));
+            }
+        }
+        // Handle team fields
+        else if (name.startsWith('teamProfile.')) {
+            const field = name.split('.')[1];
+
+            // Handle age groups selection
+            if (field === 'ageGroups') {
+                setFormData(prev => ({
+                    ...prev,
+                    teamProfile: {
+                        ...prev.teamProfile,
+                        ageGroups: checked
+                            ? [...(Array.isArray(prev.teamProfile.ageGroups) ? prev.teamProfile.ageGroups : []), value]
+                            : (Array.isArray(prev.teamProfile.ageGroups) ? prev.teamProfile.ageGroups : []).filter(age => age !== value)
+                    }
+                }));
+            }
+            // Handle other team fields
+            else {
+                setFormData(prev => ({
+                    ...prev,
+                    teamProfile: {
+                        ...prev.teamProfile,
                         [field]: value
                     }
                 }));
@@ -638,53 +680,122 @@ const Register = () => {
                 return (
                     <>
                         <div>
-                            <label htmlFor="team.teamName" className="sr-only">
+                            <label htmlFor="teamProfile.teamName" className="block text-sm font-medium text-gray-700">
                                 Team Name
                             </label>
                             <input
-                                id="team.teamName"
-                                name="team.teamName"
+                                id="teamProfile.teamName"
+                                name="teamProfile.teamName"
                                 type="text"
                                 required
                                 value={formData.teamProfile.teamName}
                                 onChange={handleChange}
-                                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                                placeholder="Team Name"
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                                placeholder="Enter your team name"
                             />
                         </div>
                         <div>
-                            <label htmlFor="team.sport" className="sr-only">
+                            <label htmlFor="teamProfile.sport" className="block text-sm font-medium text-gray-700">
                                 Sport
                             </label>
-                            <input
-                                id="team.sport"
-                                name="team.sport"
-                                type="text"
+                            <select
+                                id="teamProfile.sport"
+                                name="teamProfile.sport"
                                 required
                                 value={formData.teamProfile.sport}
                                 onChange={handleChange}
-                                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                                placeholder="Sport"
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                            >
+                                <option value="">Select a sport</option>
+                                {SPORTS.map(sport => (
+                                    <option key={sport.value} value={sport.value}>
+                                        {sport.icon} {sport.label}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Age Groups Supported
+                            </label>
+                            <div className="grid grid-cols-2 gap-2">
+                                {TEAM_AGE_GROUPS.map(ageGroup => (
+                                    <label key={ageGroup} className="flex items-center">
+                                        <input
+                                            type="checkbox"
+                                            name="teamProfile.ageGroups"
+                                            value={ageGroup}
+                                            checked={Array.isArray(formData.teamProfile.ageGroups) && formData.teamProfile.ageGroups.includes(ageGroup)}
+                                            onChange={handleChange}
+                                            className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                                        />
+                                        <span className="ml-2 text-sm text-gray-700">{ageGroup}</span>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+                        <div>
+                            <label htmlFor="teamProfile.teamType" className="block text-sm font-medium text-gray-700">
+                                Team Type
+                            </label>
+                            <select
+                                id="teamProfile.teamType"
+                                name="teamProfile.teamType"
+                                required
+                                value={formData.teamProfile.teamType}
+                                onChange={handleChange}
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                            >
+                                <option value="">Select team type</option>
+                                {TEAM_TYPES.map(type => (
+                                    <option key={type.value} value={type.value}>
+                                        {type.label}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label htmlFor="teamProfile.location" className="block text-sm font-medium text-gray-700">
+                                Location
+                            </label>
+                            <input
+                                id="teamProfile.location"
+                                name="teamProfile.location"
+                                type="text"
+                                required
+                                value={formData.teamProfile.location}
+                                onChange={handleChange}
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                                placeholder="City, State"
                             />
                         </div>
                         <div>
-                            <label htmlFor="team.level" className="sr-only">
-                                Team Level
+                            <label htmlFor="teamProfile.website" className="block text-sm font-medium text-gray-700">
+                                Team Website (Optional)
                             </label>
-                            <select
-                                id="team.level"
-                                name="team.level"
-                                required
-                                value={formData.teamProfile.level}
+                            <input
+                                id="teamProfile.website"
+                                name="teamProfile.website"
+                                type="url"
+                                value={formData.teamProfile.website}
                                 onChange={handleChange}
-                                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                            >
-                                <option value="">Select Team Level</option>
-                                <option value="recreational">Recreational</option>
-                                <option value="competitive">Competitive</option>
-                                <option value="select">Select</option>
-                                <option value="elite">Elite</option>
-                            </select>
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                                placeholder="https://yourteam.com"
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="teamProfile.description" className="block text-sm font-medium text-gray-700">
+                                Team Description
+                            </label>
+                            <textarea
+                                id="teamProfile.description"
+                                name="teamProfile.description"
+                                rows={4}
+                                value={formData.teamProfile.description}
+                                onChange={handleChange}
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                                placeholder="Tell us about your team, philosophy, achievements, etc."
+                            />
                         </div>
                     </>
                 );

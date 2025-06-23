@@ -25,6 +25,15 @@ const Profile = () => {
             skills: {},
             ageGroups: [],
             certifications: []
+        },
+        teamProfile: {
+            teamName: '',
+            sport: '',
+            ageGroups: [],
+            teamType: '',
+            location: '',
+            website: '',
+            description: ''
         }
     });
 
@@ -57,6 +66,15 @@ const Profile = () => {
                             skills: {},
                             ageGroups: [],
                             certifications: []
+                        },
+                        teamProfile: userData.teamProfile || {
+                            teamName: '',
+                            sport: '',
+                            ageGroups: [],
+                            teamType: '',
+                            location: '',
+                            website: '',
+                            description: ''
                         }
                     });
                 }
@@ -150,6 +168,28 @@ const Profile = () => {
                     }
                 }));
             }
+        } else if (name.startsWith('team.')) {
+            const teamField = name.split('.')[1];
+            if (teamField === 'ageGroups') {
+                const ageGroup = value;
+                setFormData(prev => ({
+                    ...prev,
+                    teamProfile: {
+                        ...prev.teamProfile,
+                        ageGroups: checked
+                            ? [...prev.teamProfile.ageGroups, ageGroup]
+                            : prev.teamProfile.ageGroups.filter(ag => ag !== ageGroup)
+                    }
+                }));
+            } else {
+                setFormData(prev => ({
+                    ...prev,
+                    teamProfile: {
+                        ...prev.teamProfile,
+                        [teamField]: value
+                    }
+                }));
+            }
         } else {
             setFormData(prev => ({
                 ...prev,
@@ -191,6 +231,8 @@ const Profile = () => {
                     ...formData.coachProfile,
                     skills: cleanedSkills
                 };
+            } else if (profile.role === 'team') {
+                updateData.teamProfile = formData.teamProfile;
             }
 
             // Log for debugging
@@ -209,6 +251,9 @@ const Profile = () => {
             } else if (profile.role === 'athlete') {
                 await updateDoc(doc(db, 'athletes', user.uid), updateData);
                 console.log('Firestore updateDoc (athletes): SUCCESS');
+            } else if (profile.role === 'team') {
+                await updateDoc(doc(db, 'teams', user.uid), updateData);
+                console.log('Firestore updateDoc (teams): SUCCESS');
             }
 
             setEditMode(false);
@@ -239,7 +284,7 @@ const Profile = () => {
                     <div className="px-4 py-5 sm:p-6">
                         <div className="flex items-center justify-between">
                             <h3 className="text-lg leading-6 font-medium text-gray-900">
-                                {profile.role === 'coach' ? 'Coach Profile' : 'Athlete Profile'}
+                                {profile.role === 'coach' ? 'Coach Profile' : profile.role === 'team' ? 'Team Profile' : 'Athlete Profile'}
                             </h3>
                             {!editMode && (
                                 <button
@@ -374,6 +419,114 @@ const Profile = () => {
                                                 <option value="advanced">Advanced</option>
                                                 <option value="elite">Elite</option>
                                             </select>
+                                        </div>
+                                    </>
+                                ) : profile.role === 'team' ? (
+                                    <>
+                                        <div>
+                                            <label htmlFor="team.teamName" className="block text-sm font-medium text-gray-700">
+                                                Team Name
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="team.teamName"
+                                                required
+                                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                                value={formData.teamProfile.teamName}
+                                                onChange={handleChange}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label htmlFor="team.sport" className="block text-sm font-medium text-gray-700">
+                                                Sport
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="team.sport"
+                                                required
+                                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                                value={formData.teamProfile.sport}
+                                                onChange={handleChange}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                Age Groups Supported
+                                            </label>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {['9u', '10u', '11u', '12u', '13u', '14u', '15u', '16u', '17u', '18u'].map(ageGroup => (
+                                                    <label key={ageGroup} className="flex items-center">
+                                                        <input
+                                                            type="checkbox"
+                                                            name="team.ageGroups"
+                                                            value={ageGroup}
+                                                            checked={Array.isArray(formData.teamProfile.ageGroups) && formData.teamProfile.ageGroups.includes(ageGroup)}
+                                                            onChange={handleChange}
+                                                            className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                                                        />
+                                                        <span className="ml-2 text-sm text-gray-700">{ageGroup}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label htmlFor="team.teamType" className="block text-sm font-medium text-gray-700">
+                                                Team Type
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="team.teamType"
+                                                required
+                                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                                value={formData.teamProfile.teamType}
+                                                onChange={handleChange}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label htmlFor="team.location" className="block text-sm font-medium text-gray-700">
+                                                Location
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="team.location"
+                                                required
+                                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                                value={formData.teamProfile.location}
+                                                onChange={handleChange}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label htmlFor="team.website" className="block text-sm font-medium text-gray-700">
+                                                Website
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="team.website"
+                                                required
+                                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                                value={formData.teamProfile.website}
+                                                onChange={handleChange}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label htmlFor="team.description" className="block text-sm font-medium text-gray-700">
+                                                Description
+                                            </label>
+                                            <textarea
+                                                id="team.description"
+                                                name="team.description"
+                                                rows={4}
+                                                value={formData.teamProfile.description}
+                                                onChange={handleChange}
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                                placeholder="Tell us about your team..."
+                                            />
                                         </div>
                                     </>
                                 ) : (
@@ -585,6 +738,70 @@ const Profile = () => {
                                                     ) : (
                                                         <span className="text-gray-500">No sports selected</span>
                                                     )}
+                                                </dd>
+                                            </div>
+                                        </>
+                                    ) : profile.role === 'team' ? (
+                                        <>
+                                            <div>
+                                                <dt className="text-sm font-medium text-gray-500">Team Name</dt>
+                                                <dd className="mt-1 text-sm text-gray-900">
+                                                    {profile?.teamProfile?.teamName}
+                                                </dd>
+                                            </div>
+
+                                            <div>
+                                                <dt className="text-sm font-medium text-gray-500">Sport</dt>
+                                                <dd className="mt-1 text-sm text-gray-900">
+                                                    {profile?.teamProfile?.sport}
+                                                </dd>
+                                            </div>
+
+                                            <div className="sm:col-span-2">
+                                                <dt className="text-sm font-medium text-gray-500">Age Groups</dt>
+                                                <dd className="mt-1 text-sm text-gray-900">
+                                                    {profile?.teamProfile?.ageGroups?.length > 0 ? (
+                                                        <div className="flex space-x-2">
+                                                            {profile.teamProfile.ageGroups.map(ageGroup => (
+                                                                <span
+                                                                    key={ageGroup}
+                                                                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
+                                                                >
+                                                                    {ageGroup}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-gray-500">No age groups selected</span>
+                                                    )}
+                                                </dd>
+                                            </div>
+
+                                            <div className="sm:col-span-2">
+                                                <dt className="text-sm font-medium text-gray-500">Team Type</dt>
+                                                <dd className="mt-1 text-sm text-gray-900">
+                                                    {profile?.teamProfile?.teamType}
+                                                </dd>
+                                            </div>
+
+                                            <div className="sm:col-span-2">
+                                                <dt className="text-sm font-medium text-gray-500">Location</dt>
+                                                <dd className="mt-1 text-sm text-gray-900">
+                                                    {profile?.teamProfile?.location}
+                                                </dd>
+                                            </div>
+
+                                            <div className="sm:col-span-2">
+                                                <dt className="text-sm font-medium text-gray-500">Website</dt>
+                                                <dd className="mt-1 text-sm text-gray-900">
+                                                    {profile?.teamProfile?.website}
+                                                </dd>
+                                            </div>
+
+                                            <div className="sm:col-span-2">
+                                                <dt className="text-sm font-medium text-gray-500">Description</dt>
+                                                <dd className="mt-1 text-sm text-gray-900">
+                                                    {profile?.teamProfile?.description}
                                                 </dd>
                                             </div>
                                         </>

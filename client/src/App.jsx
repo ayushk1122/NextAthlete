@@ -13,6 +13,7 @@ const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
 const Leagues = lazy(() => import("./pages/Leagues"));
 const Coaches = lazy(() => import('./pages/Coaches'));
+const Teams = lazy(() => import('./pages/Teams'));
 const Inbox = lazy(() => import('./pages/Inbox'));
 
 function ProtectedRoute({ children }) {
@@ -57,6 +58,7 @@ function App() {
                                 }
                             />
                             <Route path="/leagues" element={<Leagues />} />
+                            <Route path="/teams" element={<Teams />} />
                             <Route path="/coaches" element={<Coaches />} />
                         </Routes>
                     </Suspense>

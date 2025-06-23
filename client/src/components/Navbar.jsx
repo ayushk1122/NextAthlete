@@ -8,8 +8,9 @@ const navigation = [
     { name: 'Home', href: '/' },
     { name: 'Starter Kits', href: '/starter-kits' },
     { name: 'Coaches', href: '/coaches' },
-    { name: 'Ask a Question', href: '/ask' },
+    { name: 'Teams', href: '/teams' },
     { name: 'Leagues', href: '/leagues' },
+    { name: 'Ask a Question', href: '/ask' },
 ]
 
 function classNames(...classes) {
