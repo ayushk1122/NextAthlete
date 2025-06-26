@@ -232,6 +232,7 @@ export default function Inbox() {
                 case 'coach': return 'Coach';
                 case 'team': return 'Team Rep';
                 case 'athlete': return 'Athlete';
+                case 'parent': return 'Parent';
                 default: return '';
             }
         };
@@ -264,9 +265,10 @@ export default function Inbox() {
                     <div className="font-semibold text-gray-900">{displayName}</div>
                     {roleDisplay && (
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${role === 'coach' ? 'bg-blue-100 text-blue-800' :
-                            role === 'team' ? 'bg-green-100 text-green-800' :
-                                role === 'athlete' ? 'bg-purple-100 text-purple-800' :
-                                    'bg-gray-100 text-gray-800'
+                                role === 'team' ? 'bg-green-100 text-green-800' :
+                                    role === 'athlete' ? 'bg-purple-100 text-purple-800' :
+                                        role === 'parent' ? 'bg-orange-100 text-orange-800' :
+                                            'bg-gray-100 text-gray-800'
                             }`}>
                             {roleDisplay}
                         </span>
@@ -313,6 +315,7 @@ export default function Inbox() {
                                     case 'coach': return 'Coach';
                                     case 'team': return 'Team Rep';
                                     case 'athlete': return 'Athlete';
+                                    case 'parent': return 'Parent';
                                     default: return '';
                                 }
                             };
@@ -332,9 +335,10 @@ export default function Inbox() {
                                         <div className="font-semibold text-gray-900">{displayName}</div>
                                         {roleDisplay && (
                                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${role === 'coach' ? 'bg-blue-100 text-blue-800' :
-                                                role === 'team' ? 'bg-green-100 text-green-800' :
-                                                    role === 'athlete' ? 'bg-purple-100 text-purple-800' :
-                                                        'bg-gray-100 text-gray-800'
+                                                    role === 'team' ? 'bg-green-100 text-green-800' :
+                                                        role === 'athlete' ? 'bg-purple-100 text-purple-800' :
+                                                            role === 'parent' ? 'bg-orange-100 text-orange-800' :
+                                                                'bg-gray-100 text-gray-800'
                                                 }`}>
                                                 {roleDisplay}
                                             </span>

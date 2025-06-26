@@ -26,6 +26,17 @@ const Profile = () => {
             ageGroups: [],
             certifications: []
         },
+        parentProfile: {
+            numberOfAthletes: 1,
+            athletes: [
+                {
+                    name: '',
+                    age: '',
+                    sports: [],
+                    competitiveLevel: 'beginner'
+                }
+            ]
+        },
         teamProfile: {
             teamName: '',
             sport: '',
@@ -67,6 +78,17 @@ const Profile = () => {
                             ageGroups: [],
                             certifications: []
                         },
+                        parentProfile: userData.parentProfile || {
+                            numberOfAthletes: 1,
+                            athletes: [
+                                {
+                                    name: '',
+                                    age: '',
+                                    sports: [],
+                                    competitiveLevel: 'beginner'
+                                }
+                            ]
+                        },
                         teamProfile: userData.teamProfile || {
                             teamName: '',
                             sport: '',
@@ -91,6 +113,85 @@ const Profile = () => {
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
+
+        // Handle parent profile changes
+        if (name.startsWith('parentProfile.')) {
+            const field = name.split('.')[1];
+            if (field === 'numberOfAthletes') {
+                const numAthletes = parseInt(value);
+                setFormData(prev => {
+                    const currentAthletes = prev.parentProfile.athletes;
+                    let newAthletes = [...currentAthletes];
+
+                    // Add or remove athletes based on the new number
+                    if (numAthletes > currentAthletes.length) {
+                        // Add new athletes
+                        for (let i = currentAthletes.length; i < numAthletes; i++) {
+                            newAthletes.push({
+                                name: '',
+                                age: '',
+                                sports: [],
+                                competitiveLevel: 'beginner'
+                            });
+                        }
+                    } else if (numAthletes < currentAthletes.length) {
+                        // Remove excess athletes
+                        newAthletes = newAthletes.slice(0, numAthletes);
+                    }
+
+                    return {
+                        ...prev,
+                        parentProfile: {
+                            ...prev.parentProfile,
+                            numberOfAthletes: numAthletes,
+                            athletes: newAthletes
+                        }
+                    };
+                });
+            }
+            return;
+        }
+
+        // Handle individual athlete fields within parent profile
+        if (name.startsWith('parentAthlete.')) {
+            const parts = name.split('.');
+            const athleteIndex = parseInt(parts[1]);
+            const field = parts[2];
+
+            if (field === 'sports') {
+                const sport = value;
+                setFormData(prev => ({
+                    ...prev,
+                    parentProfile: {
+                        ...prev.parentProfile,
+                        athletes: prev.parentProfile.athletes.map((athlete, index) =>
+                            index === athleteIndex
+                                ? {
+                                    ...athlete,
+                                    sports: checked
+                                        ? [...athlete.sports, sport]
+                                        : athlete.sports.filter(s => s !== sport)
+                                }
+                                : athlete
+                        )
+                    }
+                }));
+            } else {
+                setFormData(prev => ({
+                    ...prev,
+                    parentProfile: {
+                        ...prev.parentProfile,
+                        athletes: prev.parentProfile.athletes.map((athlete, index) =>
+                            index === athleteIndex
+                                ? { ...athlete, [field]: value }
+                                : athlete
+                        )
+                    }
+                }));
+            }
+            return;
+        }
+
         if (name.startsWith('athlete.')) {
             const athleteField = name.split('.')[1];
             if (athleteField === 'sports') {
@@ -233,6 +334,8 @@ const Profile = () => {
                 };
             } else if (profile.role === 'team') {
                 updateData.teamProfile = formData.teamProfile;
+            } else if (profile.role === 'parent') {
+                updateData.parentProfile = formData.parentProfile;
             }
 
             // Log for debugging
@@ -254,6 +357,9 @@ const Profile = () => {
             } else if (profile.role === 'team') {
                 await updateDoc(doc(db, 'teams', user.uid), updateData);
                 console.log('Firestore updateDoc (teams): SUCCESS');
+            } else if (profile.role === 'parent') {
+                await updateDoc(doc(db, 'parents', user.uid), updateData);
+                console.log('Firestore updateDoc (parents): SUCCESS');
             }
 
             setEditMode(false);
@@ -284,7 +390,10 @@ const Profile = () => {
                     <div className="px-4 py-5 sm:p-6">
                         <div className="flex items-center justify-between">
                             <h3 className="text-lg leading-6 font-medium text-gray-900">
-                                {profile.role === 'coach' ? 'Coach Profile' : profile.role === 'team' ? 'Team Profile' : 'Athlete Profile'}
+                                {profile.role === 'coach' ? 'Coach Profile' :
+                                    profile.role === 'team' ? 'Team Profile' :
+                                        profile.role === 'parent' ? 'Parent Profile' :
+                                            'Athlete Profile'}
                             </h3>
                             {!editMode && (
                                 <button
@@ -419,6 +528,166 @@ const Profile = () => {
                                                 <option value="advanced">Advanced</option>
                                                 <option value="elite">Elite</option>
                                             </select>
+                                        </div>
+                                    </>
+                                ) : profile.role === 'parent' ? (
+                                    <>
+                                        <div>
+                                            <label htmlFor="parentProfile.numberOfAthletes" className="block text-sm font-medium text-gray-700">
+                                                Number of Athletes
+                                            </label>
+                                            <select
+                                                id="parentProfile.numberOfAthletes"
+                                                name="parentProfile.numberOfAthletes"
+                                                required
+                                                value={formData.parentProfile.numberOfAthletes}
+                                                onChange={handleChange}
+                                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                                            >
+                                                <option value={1}>1 Athlete</option>
+                                                <option value={2}>2 Athletes</option>
+                                                <option value={3}>3 Athletes</option>
+                                                <option value={4}>4 Athletes</option>
+                                                <option value={5}>5 Athletes</option>
+                                            </select>
+                                        </div>
+
+                                        {/* Athletes Information */}
+                                        <div className="space-y-4">
+                                            <div className="flex items-center justify-between">
+                                                <h3 className="text-lg font-medium text-gray-900">Athletes Information</h3>
+                                                <div className="flex space-x-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const newAthletes = [...formData.parentProfile.athletes, {
+                                                                name: '',
+                                                                age: '',
+                                                                sports: [],
+                                                                competitiveLevel: 'beginner'
+                                                            }];
+                                                            setFormData(prev => ({
+                                                                ...prev,
+                                                                parentProfile: {
+                                                                    ...prev.parentProfile,
+                                                                    numberOfAthletes: newAthletes.length,
+                                                                    athletes: newAthletes
+                                                                }
+                                                            }));
+                                                        }}
+                                                        className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-purple-700 bg-purple-100 hover:bg-purple-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                                                    >
+                                                        + Add Athlete
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            {formData.parentProfile.athletes.map((athlete, index) => (
+                                                <div key={index} className="bg-gray-50 p-4 rounded-lg border relative">
+                                                    <div className="flex items-center justify-between mb-3">
+                                                        <h4 className="font-medium text-gray-900">Athlete {index + 1}</h4>
+                                                        {formData.parentProfile.athletes.length > 1 && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const newAthletes = formData.parentProfile.athletes.filter((_, i) => i !== index);
+                                                                    setFormData(prev => ({
+                                                                        ...prev,
+                                                                        parentProfile: {
+                                                                            ...prev.parentProfile,
+                                                                            numberOfAthletes: newAthletes.length,
+                                                                            athletes: newAthletes
+                                                                        }
+                                                                    }));
+                                                                }}
+                                                                className="inline-flex items-center px-2 py-1 border border-transparent text-sm font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                                                            >
+                                                                Remove
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <div>
+                                                            <label htmlFor={`parentAthlete.${index}.name`} className="block text-sm font-medium text-gray-700">
+                                                                Name
+                                                            </label>
+                                                            <input
+                                                                id={`parentAthlete.${index}.name`}
+                                                                name={`parentAthlete.${index}.name`}
+                                                                type="text"
+                                                                required
+                                                                value={athlete.name}
+                                                                onChange={handleChange}
+                                                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                                                                placeholder="Athlete Name"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label htmlFor={`parentAthlete.${index}.age`} className="block text-sm font-medium text-gray-700">
+                                                                Age
+                                                            </label>
+                                                            <input
+                                                                id={`parentAthlete.${index}.age`}
+                                                                name={`parentAthlete.${index}.age`}
+                                                                type="number"
+                                                                required
+                                                                min="4"
+                                                                max="18"
+                                                                value={athlete.age}
+                                                                onChange={handleChange}
+                                                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                                                                placeholder="Age"
+                                                            />
+                                                        </div>
+                                                        <div className="md:col-span-2">
+                                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                                Sports Interests
+                                                            </label>
+                                                            <div className="flex flex-wrap gap-3">
+                                                                <label className="inline-flex items-center">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        name={`parentAthlete.${index}.sports`}
+                                                                        value="baseball"
+                                                                        checked={athlete.sports.includes('baseball')}
+                                                                        onChange={handleChange}
+                                                                        className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                                                                    />
+                                                                    <span className="ml-2 text-sm">⚾ Baseball</span>
+                                                                </label>
+                                                                <label className="inline-flex items-center">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        name={`parentAthlete.${index}.sports`}
+                                                                        value="soccer"
+                                                                        checked={athlete.sports.includes('soccer')}
+                                                                        onChange={handleChange}
+                                                                        className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                                                                    />
+                                                                    <span className="ml-2 text-sm">⚽ Soccer</span>
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                        <div className="md:col-span-2">
+                                                            <label htmlFor={`parentAthlete.${index}.competitiveLevel`} className="block text-sm font-medium text-gray-700">
+                                                                Competitive Level
+                                                            </label>
+                                                            <select
+                                                                id={`parentAthlete.${index}.competitiveLevel`}
+                                                                name={`parentAthlete.${index}.competitiveLevel`}
+                                                                required
+                                                                value={athlete.competitiveLevel}
+                                                                onChange={handleChange}
+                                                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                                                            >
+                                                                <option value="beginner">Beginner</option>
+                                                                <option value="intermediate">Intermediate</option>
+                                                                <option value="advanced">Advanced</option>
+                                                                <option value="elite">Elite</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
                                         </div>
                                     </>
                                 ) : profile.role === 'team' ? (
@@ -701,6 +970,11 @@ const Profile = () => {
                                                 {profile?.athleteProfile?.name}
                                             </p>
                                         )}
+                                        {profile.role === 'parent' && (
+                                            <p className="text-sm text-gray-500">
+                                                Parent of {profile?.parentProfile?.athletes?.length || 0} athlete(s)
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
 
@@ -878,6 +1152,57 @@ const Profile = () => {
                                                         </div>
                                                     ) : (
                                                         <span className="text-gray-500">No age groups selected</span>
+                                                    )}
+                                                </dd>
+                                            </div>
+
+                                            <div className="sm:col-span-2">
+                                                <dt className="text-sm font-medium text-gray-500">Number of Athletes</dt>
+                                                <dd className="mt-1 text-sm text-gray-900">
+                                                    {profile?.parentProfile?.numberOfAthletes || 0}
+                                                </dd>
+                                            </div>
+
+                                            <div className="sm:col-span-2">
+                                                <dt className="text-sm font-medium text-gray-500">Athletes</dt>
+                                                <dd className="mt-1 text-sm text-gray-900">
+                                                    {profile?.parentProfile?.athletes?.length > 0 ? (
+                                                        <div className="space-y-4">
+                                                            {profile.parentProfile.athletes.map((athlete, index) => (
+                                                                <div key={index} className="bg-gray-50 p-4 rounded-lg border">
+                                                                    <h4 className="font-medium text-gray-900 mb-2">Athlete {index + 1}: {athlete.name}</h4>
+                                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                                        <div>
+                                                                            <span className="text-xs font-medium text-gray-500">Age:</span>
+                                                                            <span className="ml-2 text-sm text-gray-900">{athlete.age}</span>
+                                                                        </div>
+                                                                        <div>
+                                                                            <span className="text-xs font-medium text-gray-500">Level:</span>
+                                                                            <span className="ml-2 text-sm text-gray-900 capitalize">{athlete.competitiveLevel}</span>
+                                                                        </div>
+                                                                        <div className="sm:col-span-2">
+                                                                            <span className="text-xs font-medium text-gray-500">Sports:</span>
+                                                                            <div className="mt-1 flex space-x-2">
+                                                                                {athlete.sports?.length > 0 ? (
+                                                                                    athlete.sports.map(sport => (
+                                                                                        <span
+                                                                                            key={sport}
+                                                                                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800"
+                                                                                        >
+                                                                                            {sport === 'baseball' ? '⚾' : '⚽'} {sport.charAt(0).toUpperCase() + sport.slice(1)}
+                                                                                        </span>
+                                                                                    ))
+                                                                                ) : (
+                                                                                    <span className="text-gray-500">No sports selected</span>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-gray-500">No athletes registered</span>
                                                     )}
                                                 </dd>
                                             </div>

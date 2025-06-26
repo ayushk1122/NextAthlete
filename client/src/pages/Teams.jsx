@@ -124,7 +124,21 @@ const Teams = () => {
                     senderName = coachData.coachProfile?.name || coachData.name || user.displayName || 'Coach';
                 }
             } catch (err) {
-                console.log('User is not a coach, using athlete role');
+                console.log('User is not a coach, checking if parent...');
+            }
+
+            // Check if user is a parent by looking for parent profile
+            if (senderRole === 'athlete') {
+                try {
+                    const parentDoc = await getDoc(doc(db, 'parents', user.uid));
+                    if (parentDoc.exists()) {
+                        const parentData = parentDoc.data();
+                        senderRole = 'parent';
+                        senderName = parentData.name || user.displayName || 'Parent';
+                    }
+                } catch (err) {
+                    console.log('User is not a parent, using athlete role');
+                }
             }
 
             const conversationId = [user.uid, selectedTeam.id].sort().join('_');

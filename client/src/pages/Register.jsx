@@ -52,6 +52,7 @@ const Register = () => {
         lastName: '',
         email: '',
         password: '',
+        confirmPassword: '',
         role: 'athlete',
         athleteProfile: {
             name: '',
@@ -70,6 +71,17 @@ const Register = () => {
             location: '',
             experience: '',
             certifications: []
+        },
+        parentProfile: {
+            numberOfAthletes: 1,
+            athletes: [
+                {
+                    name: '',
+                    age: '',
+                    sports: [],
+                    competitiveLevel: 'beginner'
+                }
+            ]
         },
         merchantProfile: {
             businessName: '',
@@ -103,6 +115,84 @@ const Register = () => {
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
+
+        // Handle parent profile changes
+        if (name.startsWith('parentProfile.')) {
+            const field = name.split('.')[1];
+            if (field === 'numberOfAthletes') {
+                const numAthletes = parseInt(value);
+                setFormData(prev => {
+                    const currentAthletes = prev.parentProfile.athletes;
+                    let newAthletes = [...currentAthletes];
+
+                    // Add or remove athletes based on the new number
+                    if (numAthletes > currentAthletes.length) {
+                        // Add new athletes
+                        for (let i = currentAthletes.length; i < numAthletes; i++) {
+                            newAthletes.push({
+                                name: '',
+                                age: '',
+                                sports: [],
+                                competitiveLevel: 'beginner'
+                            });
+                        }
+                    } else if (numAthletes < currentAthletes.length) {
+                        // Remove excess athletes
+                        newAthletes = newAthletes.slice(0, numAthletes);
+                    }
+
+                    return {
+                        ...prev,
+                        parentProfile: {
+                            ...prev.parentProfile,
+                            numberOfAthletes: numAthletes,
+                            athletes: newAthletes
+                        }
+                    };
+                });
+            }
+            return;
+        }
+
+        // Handle individual athlete fields within parent profile
+        if (name.startsWith('parentAthlete.')) {
+            const parts = name.split('.');
+            const athleteIndex = parseInt(parts[1]);
+            const field = parts[2];
+
+            if (field === 'sports') {
+                const sport = value;
+                setFormData(prev => ({
+                    ...prev,
+                    parentProfile: {
+                        ...prev.parentProfile,
+                        athletes: prev.parentProfile.athletes.map((athlete, index) =>
+                            index === athleteIndex
+                                ? {
+                                    ...athlete,
+                                    sports: checked
+                                        ? [...athlete.sports, sport]
+                                        : athlete.sports.filter(s => s !== sport)
+                                }
+                                : athlete
+                        )
+                    }
+                }));
+            } else {
+                setFormData(prev => ({
+                    ...prev,
+                    parentProfile: {
+                        ...prev.parentProfile,
+                        athletes: prev.parentProfile.athletes.map((athlete, index) =>
+                            index === athleteIndex
+                                ? { ...athlete, [field]: value }
+                                : athlete
+                        )
+                    }
+                }));
+            }
+            return;
+        }
 
         // Handle coach skills FIRST
         if (name.startsWith('coachProfile.skills.')) {
@@ -275,6 +365,10 @@ const Register = () => {
                 case 'coach':
                     collectionName = 'coaches';
                     break;
+                case 'parent':
+                    userData.parentProfile = formData.parentProfile;
+                    collectionName = 'parents';
+                    break;
                 case 'merchant':
                     userData.merchantProfile = formData.merchantProfile;
                     collectionName = 'merchants';
@@ -393,6 +487,123 @@ const Register = () => {
                                 <option value="advanced">Advanced</option>
                                 <option value="elite">Elite</option>
                             </select>
+                        </div>
+                    </>
+                );
+            case 'parent':
+                return (
+                    <>
+                        <div className="space-y-6">
+                            <div>
+                                <label htmlFor="parentProfile.numberOfAthletes" className="block text-sm font-medium text-gray-700">
+                                    Number of Athletes
+                                </label>
+                                <select
+                                    id="parentProfile.numberOfAthletes"
+                                    name="parentProfile.numberOfAthletes"
+                                    required
+                                    value={formData.parentProfile.numberOfAthletes}
+                                    onChange={handleChange}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500"
+                                >
+                                    <option value={1}>1 Athlete</option>
+                                    <option value={2}>2 Athletes</option>
+                                    <option value={3}>3 Athletes</option>
+                                    <option value={4}>4 Athletes</option>
+                                    <option value={5}>5 Athletes</option>
+                                </select>
+                            </div>
+
+                            {/* Athletes Information */}
+                            <div className="space-y-4">
+                                <h3 className="text-lg font-medium text-gray-900">Athletes Information</h3>
+                                {formData.parentProfile.athletes.map((athlete, index) => (
+                                    <div key={index} className="bg-gray-50 p-4 rounded-lg border">
+                                        <h4 className="font-medium text-gray-900 mb-3">Athlete {index + 1}</h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label htmlFor={`parentAthlete.${index}.name`} className="block text-sm font-medium text-gray-700">
+                                                    Name
+                                                </label>
+                                                <input
+                                                    id={`parentAthlete.${index}.name`}
+                                                    name={`parentAthlete.${index}.name`}
+                                                    type="text"
+                                                    required
+                                                    value={athlete.name}
+                                                    onChange={handleChange}
+                                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500"
+                                                    placeholder="Athlete Name"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label htmlFor={`parentAthlete.${index}.age`} className="block text-sm font-medium text-gray-700">
+                                                    Age
+                                                </label>
+                                                <input
+                                                    id={`parentAthlete.${index}.age`}
+                                                    name={`parentAthlete.${index}.age`}
+                                                    type="number"
+                                                    required
+                                                    min="4"
+                                                    max="18"
+                                                    value={athlete.age}
+                                                    onChange={handleChange}
+                                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500"
+                                                    placeholder="Age"
+                                                />
+                                            </div>
+                                            <div className="md:col-span-2">
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                    Sports Interests
+                                                </label>
+                                                <div className="flex flex-wrap gap-3">
+                                                    <label className="inline-flex items-center">
+                                                        <input
+                                                            type="checkbox"
+                                                            name={`parentAthlete.${index}.sports`}
+                                                            value="baseball"
+                                                            checked={athlete.sports.includes('baseball')}
+                                                            onChange={handleChange}
+                                                            className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                                                        />
+                                                        <span className="ml-2 text-sm">⚾ Baseball</span>
+                                                    </label>
+                                                    <label className="inline-flex items-center">
+                                                        <input
+                                                            type="checkbox"
+                                                            name={`parentAthlete.${index}.sports`}
+                                                            value="soccer"
+                                                            checked={athlete.sports.includes('soccer')}
+                                                            onChange={handleChange}
+                                                            className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                                                        />
+                                                        <span className="ml-2 text-sm">⚽ Soccer</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div className="md:col-span-2">
+                                                <label htmlFor={`parentAthlete.${index}.competitiveLevel`} className="block text-sm font-medium text-gray-700">
+                                                    Competitive Level
+                                                </label>
+                                                <select
+                                                    id={`parentAthlete.${index}.competitiveLevel`}
+                                                    name={`parentAthlete.${index}.competitiveLevel`}
+                                                    required
+                                                    value={athlete.competitiveLevel}
+                                                    onChange={handleChange}
+                                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500"
+                                                >
+                                                    <option value="beginner">Beginner</option>
+                                                    <option value="intermediate">Intermediate</option>
+                                                    <option value="advanced">Advanced</option>
+                                                    <option value="elite">Elite</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </>
                 );
@@ -840,6 +1051,7 @@ const Register = () => {
                                 className="appearance-only rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                             >
                                 <option value="athlete">Athlete</option>
+                                <option value="parent">Parent</option>
                                 <option value="coach">Coach</option>
                                 <option value="merchant">Equipment Merchant</option>
                                 <option value="league">Rec League</option>
