@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, getDocs, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
 
 const SPORTS = [
@@ -110,11 +110,28 @@ const Teams = () => {
                 setMessageLoading(false);
                 return;
             }
+
+            // Determine user role by checking if they have a coach profile
+            let senderRole = 'athlete';
+            let senderName = user.displayName || 'Athlete';
+
+            // Check if user is a coach by looking for coach profile
+            try {
+                const coachDoc = await getDoc(doc(db, 'coaches', user.uid));
+                if (coachDoc.exists()) {
+                    const coachData = coachDoc.data();
+                    senderRole = 'coach';
+                    senderName = coachData.coachProfile?.name || coachData.name || user.displayName || 'Coach';
+                }
+            } catch (err) {
+                console.log('User is not a coach, using athlete role');
+            }
+
             const conversationId = [user.uid, selectedTeam.id].sort().join('_');
             await addDoc(collection(db, 'messages'), {
                 senderId: user.uid,
-                senderRole: 'athlete',
-                senderName: user.displayName || 'Athlete',
+                senderRole: senderRole,
+                senderName: senderName,
                 receiverId: selectedTeam.id,
                 receiverRole: 'team',
                 receiverName: selectedTeam.teamProfile.teamName || 'Team',
@@ -270,6 +287,28 @@ const Teams = () => {
                                         <li>• Discover opportunities for year-round development and competition</li>
                                     </ul>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Coaches Opportunities Section */}
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-8">
+                        <div className="max-w-4xl mx-auto">
+                            <h3 className="text-lg font-semibold text-green-900 mb-3">For Coaches: Find Coaching Opportunities</h3>
+                            <p className="text-green-800 mb-3">
+                                Coaches looking for openings or opportunities to coach on any of these teams can use this page to reach out to team representatives.
+                                Whether you're seeking a full-time coaching position, part-time assistant role, or want to network with other coaches,
+                                this directory provides direct access to team contacts.
+                            </p>
+                            <div className="bg-green-100 border-l-4 border-green-400 p-4">
+                                <h4 className="font-semibold text-green-900 mb-2">Coaches Can:</h4>
+                                <ul className="text-green-800 space-y-1">
+                                    <li>• Contact team representatives about coaching openings</li>
+                                    <li>• Inquire about assistant coaching opportunities</li>
+                                    <li>• Network with other coaches in the area</li>
+                                    <li>• Learn about team philosophies and coaching styles</li>
+                                    <li>• Explore opportunities to work with different age groups and skill levels</li>
+                                </ul>
                             </div>
                         </div>
                     </div>

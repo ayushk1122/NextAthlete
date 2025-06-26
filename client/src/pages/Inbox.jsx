@@ -142,14 +142,32 @@ export default function Inbox() {
 
         const otherUser = getOtherUserInfo(conversation.messages, currentUser.uid);
 
+        // Get roles from the existing messages
+        const existingMessage = conversation.messages.find(msg =>
+            msg.senderId === currentUser.uid || msg.receiverId === currentUser.uid
+        );
+
+        let senderRole = 'athlete'; // default
+        let receiverRole = 'athlete'; // default
+
+        if (existingMessage) {
+            if (existingMessage.senderId === currentUser.uid) {
+                senderRole = existingMessage.senderRole;
+                receiverRole = existingMessage.receiverRole;
+            } else {
+                senderRole = existingMessage.receiverRole;
+                receiverRole = existingMessage.senderRole;
+            }
+        }
+
         try {
             await addDoc(collection(db, 'messages'), {
                 content: newMessage.trim(),
                 senderId: currentUser.uid,
-                senderRole: currentUser.role || 'athlete',
+                senderRole: senderRole,
                 senderName: userNames[currentUser.uid] || 'You',
                 receiverId: otherUser.id,
-                receiverRole: otherUser.role,
+                receiverRole: receiverRole,
                 receiverName: userNames[otherUser.id] || 'User',
                 conversationId: selectedConversation,
                 participants: [currentUser.uid, otherUser.id],
@@ -201,6 +219,25 @@ export default function Inbox() {
         if (!displayName) {
             displayName = otherUser?.name || ((otherUser?.firstName || '') + ' ' + (otherUser?.lastName || '')).trim() || 'Unknown User';
         }
+
+        // Get the role of the other user from the messages
+        const otherUserRole = conversation.messages.find(msg =>
+            msg.senderId === otherUser?.id || msg.receiverId === otherUser?.id
+        );
+        const role = otherUserRole?.senderId === otherUser?.id ? otherUserRole.senderRole : otherUserRole?.receiverRole;
+
+        // Format role for display
+        const getRoleDisplay = (role) => {
+            switch (role) {
+                case 'coach': return 'Coach';
+                case 'team': return 'Team Rep';
+                case 'athlete': return 'Athlete';
+                default: return '';
+            }
+        };
+
+        const roleDisplay = getRoleDisplay(role);
+
         console.log('Conversation data:', {
             conversation,
             otherUser,
@@ -209,7 +246,9 @@ export default function Inbox() {
             userNames,
             otherUserId: otherUser?.id,
             userNameFromMap,
-            displayName
+            displayName,
+            role,
+            roleDisplay
         });
 
         return (
@@ -221,7 +260,18 @@ export default function Inbox() {
                     setOptionModalOpen(true);
                 }}
             >
-                <div className="font-semibold text-gray-900">{displayName}</div>
+                <div className="flex items-center justify-between mb-1">
+                    <div className="font-semibold text-gray-900">{displayName}</div>
+                    {roleDisplay && (
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${role === 'coach' ? 'bg-blue-100 text-blue-800' :
+                            role === 'team' ? 'bg-green-100 text-green-800' :
+                                role === 'athlete' ? 'bg-purple-100 text-purple-800' :
+                                    'bg-gray-100 text-gray-800'
+                            }`}>
+                            {roleDisplay}
+                        </span>
+                    )}
+                </div>
                 <div className="text-gray-600 text-sm truncate">{conversation.messages[0]?.content || ''}</div>
             </div>
         );
@@ -250,6 +300,25 @@ export default function Inbox() {
                         conversations.map(conv => {
                             const otherUser = getOtherUserInfo(conv.messages, currentUser.uid);
                             const displayName = userNames[otherUser.id] || getDisplayName(otherUser);
+
+                            // Get the role of the other user from the messages
+                            const otherUserRole = conv.messages.find(msg =>
+                                msg.senderId === otherUser?.id || msg.receiverId === otherUser?.id
+                            );
+                            const role = otherUserRole?.senderId === otherUser?.id ? otherUserRole.senderRole : otherUserRole?.receiverRole;
+
+                            // Format role for display
+                            const getRoleDisplay = (role) => {
+                                switch (role) {
+                                    case 'coach': return 'Coach';
+                                    case 'team': return 'Team Rep';
+                                    case 'athlete': return 'Athlete';
+                                    default: return '';
+                                }
+                            };
+
+                            const roleDisplay = getRoleDisplay(role);
+
                             return (
                                 <div
                                     key={conv.id}
@@ -259,7 +328,18 @@ export default function Inbox() {
                                         setOptionModalOpen(true);
                                     }}
                                 >
-                                    <div className="font-semibold text-gray-900">{displayName}</div>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <div className="font-semibold text-gray-900">{displayName}</div>
+                                        {roleDisplay && (
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${role === 'coach' ? 'bg-blue-100 text-blue-800' :
+                                                role === 'team' ? 'bg-green-100 text-green-800' :
+                                                    role === 'athlete' ? 'bg-purple-100 text-purple-800' :
+                                                        'bg-gray-100 text-gray-800'
+                                                }`}>
+                                                {roleDisplay}
+                                            </span>
+                                        )}
+                                    </div>
                                     <div className="text-gray-600 text-sm truncate">{conv.messages[0]?.content || ''}</div>
                                 </div>
                             );

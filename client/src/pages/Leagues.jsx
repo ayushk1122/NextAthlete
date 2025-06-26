@@ -73,6 +73,26 @@ const Leagues = () => {
                         Recreational leagues are a fantastic way to get started, make friends, and build confidence on and off the field. Explore your options below!
                     </p>
                 </div>
+
+                {/* Coaches Opportunities Section */}
+                <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-8 shadow-sm">
+                    <h3 className="text-lg font-semibold text-green-900 mb-3">For Coaches: Find League Coaching Opportunities</h3>
+                    <p className="text-green-800 mb-3">
+                        Coaches looking for openings or opportunities to coach in any of these leagues can use this page to reach out to league representatives.
+                        Whether you're seeking a coaching position, want to volunteer, or want to network with other coaches in the league system,
+                        this directory provides direct access to league contacts.
+                    </p>
+                    <div className="bg-green-100 border-l-4 border-green-400 p-4">
+                        <h4 className="font-semibold text-green-900 mb-2">Coaches Can:</h4>
+                        <ul className="text-green-800 space-y-1">
+                            <li>• Contact league representatives about coaching openings</li>
+                            <li>• Inquire about volunteer coaching opportunities</li>
+                            <li>• Network with other coaches in the league</li>
+                            <li>• Learn about league philosophies and coaching requirements</li>
+                            <li>• Explore opportunities to work with different age groups and skill levels</li>
+                        </ul>
+                    </div>
+                </div>
                 {/* Sport Filter */}
                 <div className="mb-6 flex gap-6 justify-center">
                     {SPORTS.map(sport => (

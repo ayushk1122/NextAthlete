@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, getDocs, addDoc, serverTimestamp, getDoc, doc } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
 
 const SPORTS = [
@@ -144,11 +144,28 @@ const Coaches = () => {
                 setMessageLoading(false);
                 return;
             }
+
+            // Determine user role by checking if they have a coach profile
+            let senderRole = 'athlete';
+            let senderName = user.displayName || 'Athlete';
+
+            // Check if user is a coach by looking for coach profile
+            try {
+                const coachDoc = await getDoc(doc(db, 'coaches', user.uid));
+                if (coachDoc.exists()) {
+                    const coachData = coachDoc.data();
+                    senderRole = 'coach';
+                    senderName = coachData.coachProfile?.name || coachData.name || user.displayName || 'Coach';
+                }
+            } catch (err) {
+                console.log('User is not a coach, using athlete role');
+            }
+
             const conversationId = [user.uid, selectedCoach.id].sort().join('_');
             await addDoc(collection(db, 'messages'), {
                 senderId: user.uid,
-                senderRole: 'athlete',
-                senderName: user.displayName || 'Athlete',
+                senderRole: senderRole,
+                senderName: senderName,
                 receiverId: selectedCoach.id,
                 receiverRole: 'coach',
                 receiverName: selectedCoach.coachProfile.name || 'Coach',
@@ -322,6 +339,26 @@ const Coaches = () => {
                         <h3 className="font-semibold mb-2">Age-Appropriate</h3>
                         <p>Find coaches who work with your age group, from beginners to advanced players.</p>
                     </div>
+                </div>
+            </div>
+
+            {/* Coaches Networking Section */}
+            <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-8 shadow-sm">
+                <h3 className="text-lg font-semibold text-green-900 mb-3">For Coaches: Network with Other Coaches</h3>
+                <p className="text-green-800 mb-3">
+                    Coaches looking for opportunities to work with other coaches or seeking collaborative partnerships can use this page to reach out to fellow coaches.
+                    Whether you're looking to share knowledge, collaborate on training programs, or explore joint coaching opportunities,
+                    this directory provides direct access to connect with other experienced coaches in your area.
+                </p>
+                <div className="bg-green-100 border-l-4 border-green-400 p-4">
+                    <h4 className="font-semibold text-green-900 mb-2">Coaches Can:</h4>
+                    <ul className="text-green-800 space-y-1">
+                        <li>• Connect with other coaches for collaboration opportunities</li>
+                        <li>• Share training methodologies and best practices</li>
+                        <li>• Explore joint coaching programs or camps</li>
+                        <li>• Network with coaches who specialize in different skills</li>
+                        <li>• Find mentors or mentees in the coaching community</li>
+                    </ul>
                 </div>
             </div>
 
